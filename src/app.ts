@@ -5,6 +5,8 @@ import express from "express";
 import helmet from "helmet";
 import { StatusCodes } from "http-status-codes";
 
+import routes from "@/routes";
+
 import { errorHandler, notFoundHandler } from "./middlewares/error-handler.middleware";
 import limiter from "./middlewares/rate-limit.middleware";
 
@@ -20,6 +22,8 @@ export default function createApp(): Application {
   app.get("/healthz", (_req: Request, res: Response) => {
     res.status(StatusCodes.OK).json({ status: "ok" });
   });
+
+  app.use("/api/v1", routes);
 
   app.use(notFoundHandler);
   app.use(errorHandler);
