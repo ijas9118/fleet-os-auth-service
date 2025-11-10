@@ -17,7 +17,7 @@ export function validate(schema: ZodType<any>) {
       const treeified = z.treeifyError(error);
       const properties = (treeified as any).properties;
       return res.status(STATUS_CODES.BAD_REQUEST).json({
-        message: MESSAGES.BAD_REQUEST,
+        message: MESSAGES.ERROR.BAD_REQUEST,
         errors: properties,
       });
     }

@@ -2,11 +2,13 @@ import type { Document } from "mongoose";
 
 import { model, Schema } from "mongoose";
 
+import type { Role } from "@/config/constants/roles.constant";
+
 export type IUser = {
   email: string;
   password: string;
   name: string;
-  role: "customer" | "admin";
+  role: Role;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -34,7 +36,7 @@ const userSchema = new Schema<IUser>(
     },
     role: {
       type: String,
-      enum: ["customer", "admin"],
+      enum: ["customer", "driver", "operations_manager", "warehouse_manager", "admin"],
       default: "customer",
     },
     isActive: {

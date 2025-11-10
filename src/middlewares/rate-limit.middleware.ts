@@ -8,7 +8,7 @@ const limiter = rateLimit({
   max: 100,
   handler: (_req, res) => {
     res.status(STATUS_CODES.TOO_MANY_REQUESTS).json({
-      message: MESSAGES.TOO_MANY_REQUESTS,
+      message: MESSAGES.ERROR.TOO_MANY_REQUESTS,
       timestamp: new Date().toISOString(),
     });
   },

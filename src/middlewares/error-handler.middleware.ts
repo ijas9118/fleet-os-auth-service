@@ -27,7 +27,7 @@ export function errorHandler(err: Error & { statusCode?: number }, req: Request,
   res.status(statusCode).json({
     success: false,
     error: {
-      message: isProd ? MESSAGES.INTERNAL_SERVER_ERROR : err.message,
+      message: isProd ? MESSAGES.ERROR.INTERNAL_SERVER_ERROR : err.message,
       path: req.originalUrl,
       method: req.method,
     },
