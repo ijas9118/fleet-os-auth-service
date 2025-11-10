@@ -1,5 +1,4 @@
-import { StatusCodes } from "http-status-codes";
-
+import { STATUS_CODES } from "@/config/constants/status-codes.constant";
 import logger from "@/config/logger";
 import env from "@/config/validate-env";
 import { errorHandler, notFoundHandler } from "@/middlewares/error-handler.middleware";
@@ -29,7 +28,7 @@ describe("error and notFound handlers", () => {
     notFoundHandler(mockReq, mockRes, mockNext);
 
     expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("404 Not Found"));
-    expect(mockRes.status).toHaveBeenCalledWith(StatusCodes.NOT_FOUND);
+    expect(mockRes.status).toHaveBeenCalledWith(STATUS_CODES.NOT_FOUND);
     expect(mockRes.json).toHaveBeenCalledWith({
       success: false,
       error: {
@@ -50,7 +49,7 @@ describe("error and notFound handlers", () => {
       expect.objectContaining({ stack: expect.any(String), path: "/test" }),
     );
 
-    expect(mockRes.status).toHaveBeenCalledWith(StatusCodes.INTERNAL_SERVER_ERROR);
+    expect(mockRes.status).toHaveBeenCalledWith(STATUS_CODES.INTERNAL_SERVER_ERROR);
     expect(mockRes.json).toHaveBeenCalledWith({
       success: false,
       error: {

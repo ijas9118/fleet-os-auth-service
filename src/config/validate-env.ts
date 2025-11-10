@@ -11,6 +11,10 @@ const EnvSchema = z.object({
   SERVICE_NAME: z.string(),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]),
   DATABASE_URL: z.string(),
+  PRIVATE_KEY: z.string(),
+  PUBLIC_KEY: z.string(),
+  JWT_EXPIRES_IN: z.string(),
+  JWT_REFRESH_EXPIRES_IN: z.string(),
 });
 
 export type env = z.infer<typeof EnvSchema>;

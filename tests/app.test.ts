@@ -1,7 +1,7 @@
-import { StatusCodes } from "http-status-codes";
 import request from "supertest";
 
 import createApp from "@/app";
+import { STATUS_CODES } from "@/config/constants/status-codes.constant";
 import logger from "@/config/logger";
 
 jest.mock("@/config/logger", () => ({
@@ -18,14 +18,14 @@ describe("createApp()", () => {
   it("should respond to /healthz with 200 and correct JSON", async () => {
     const res = await request(app).get("/healthz");
 
-    expect(res.status).toBe(StatusCodes.OK);
+    expect(res.status).toBe(STATUS_CODES.OK);
     expect(res.body).toEqual({ status: "ok" });
   });
 
   it("should return 404 and log warning for unknown route", async () => {
     const res = await request(app).get("/nonexistent");
 
-    expect(res.status).toBe(StatusCodes.NOT_FOUND);
+    expect(res.status).toBe(STATUS_CODES.NOT_FOUND);
     expect(res.body).toEqual({
       success: false,
       error: {
@@ -46,7 +46,7 @@ describe("createApp()", () => {
     const responses = await Promise.all(requests);
 
     const tooMany = responses.filter(
-      r => r.status === StatusCodes.TOO_MANY_REQUESTS,
+      r => r.status === STATUS_CODES.TOO_MANY_REQUESTS,
     );
 
     expect(tooMany.length).toBeGreaterThan(0);

@@ -1,13 +1,13 @@
 import type { NextFunction, Request, Response } from "express";
 
-import { StatusCodes } from "http-status-codes";
-
+import { MESSAGES } from "@/config/constants/messages.constant";
+import { STATUS_CODES } from "@/config/constants/status-codes.constant";
 import logger from "@/config/logger";
 import env from "@/config/validate-env";
 
 export function notFoundHandler(req: Request, res: Response, _next: NextFunction) {
   logger.warn(`404 Not Found: ${req.method} ${req.originalUrl}`);
-  res.status(StatusCodes.NOT_FOUND).json({
+  res.status(STATUS_CODES.NOT_FOUND).json({
     success: false,
     error: {
       code: "NOT_FOUND",
@@ -19,7 +19,7 @@ export function notFoundHandler(req: Request, res: Response, _next: NextFunction
 }
 
 export function errorHandler(err: Error & { statusCode?: number }, req: Request, res: Response, _next: NextFunction) {
-  const statusCode = err.statusCode ?? StatusCodes.INTERNAL_SERVER_ERROR;
+  const statusCode = err.statusCode ?? STATUS_CODES.INTERNAL_SERVER_ERROR;
   const isProd = env.NODE_ENV === "production";
 
   logger.error(`Unhandled error: ${err.message}`, { stack: err.stack, path: req.originalUrl });
@@ -27,8 +27,7 @@ export function errorHandler(err: Error & { statusCode?: number }, req: Request,
   res.status(statusCode).json({
     success: false,
     error: {
-      code: "INTERNAL_ERROR",
-      message: isProd ? "Something went wrong!!" : err.message,
+      message: isProd ? MESSAGES.INTERNAL_SERVER_ERROR : err.message,
       path: req.originalUrl,
       method: req.method,
     },
