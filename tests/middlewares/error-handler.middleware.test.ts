@@ -1,17 +1,7 @@
-import { StatusCodes } from "http-status-codes";
-
+import { STATUS_CODES } from "@/config/constants/status-codes.constant";
 import logger from "@/config/logger";
 import env from "@/config/validate-env";
 import { errorHandler, notFoundHandler } from "@/middlewares/error-handler.middleware";
-
-jest.mock("@/config/logger", () => ({
-  warn: jest.fn(),
-  error: jest.fn(),
-}));
-
-jest.mock("@/config/validate-env", () => ({
-  NODE_ENV: "development",
-}));
 
 describe("error and notFound handlers", () => {
   const mockReq: any = { method: "GET", originalUrl: "/test" };
@@ -29,11 +19,10 @@ describe("error and notFound handlers", () => {
     notFoundHandler(mockReq, mockRes, mockNext);
 
     expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("404 Not Found"));
-    expect(mockRes.status).toHaveBeenCalledWith(StatusCodes.NOT_FOUND);
+    expect(mockRes.status).toHaveBeenCalledWith(STATUS_CODES.NOT_FOUND);
     expect(mockRes.json).toHaveBeenCalledWith({
       success: false,
       error: {
-        code: "NOT_FOUND",
         message: "Resource not found: GET /test",
         path: "/test",
         method: "GET",
@@ -42,20 +31,19 @@ describe("error and notFound handlers", () => {
   });
 
   it("should handle error in development", () => {
-    const err = new Error("Something bad happened");
+    const err = new Error("Something went wrong, please try again later.");
     errorHandler(err, mockReq, mockRes, mockNext);
 
     expect(logger.error).toHaveBeenCalledWith(
-      expect.stringContaining("Unhandled error: Something bad happened"),
+      expect.stringContaining("Unhandled error: Something went wrong, please try again later."),
       expect.objectContaining({ stack: expect.any(String), path: "/test" }),
     );
 
-    expect(mockRes.status).toHaveBeenCalledWith(StatusCodes.INTERNAL_SERVER_ERROR);
+    expect(mockRes.status).toHaveBeenCalledWith(STATUS_CODES.INTERNAL_SERVER_ERROR);
     expect(mockRes.json).toHaveBeenCalledWith({
       success: false,
       error: {
-        code: "INTERNAL_ERROR",
-        message: "Something bad happened",
+        message: "Something went wrong, please try again later.",
         path: "/test",
         method: "GET",
       },
@@ -71,7 +59,7 @@ describe("error and notFound handlers", () => {
     expect(mockRes.json).toHaveBeenCalledWith({
       success: false,
       error: expect.objectContaining({
-        message: "Something went wrong!!",
+        message: "Something went wrong, please try again later.",
       }),
     });
   });
