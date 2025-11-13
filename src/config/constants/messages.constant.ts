@@ -4,6 +4,8 @@ export const MESSAGES = {
     LOGIN_SUCCESS: "User logged in successfully.",
     INVALID_CREDENTIALS: "Invalid email or password.",
     EMAIL_ALREADY_EXISTS: "Email already registered.",
+    LOGOUT_SUCCESS: "Logged out successfully",
+    LOGOUT_ALL_SUCCESS: "Logged out from all sessions successfully",
   },
   TOKEN: {
     EXPIRED: "Access token expired.",

@@ -7,4 +7,6 @@ export type IAuthService = {
   verifyAndRegister: (data: VerifyOtpDTO) => any;
   login: (data: LoginDTO) => any;
   refreshToken: (token: string) => any;
+  logout: (token: string) => any;
+  logoutAllSessions: (userId: string) => any;
 };
