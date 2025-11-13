@@ -56,4 +56,38 @@ export class AuthController {
     const tokens = await this._authService.refreshToken(refreshToken);
     res.status(STATUS_CODES.OK).json({ message: MESSAGES.TOKEN.NEW_TOKENS, tokens });
   };
+
+  logout = async (req: Request, res: Response) => {
+    const { refreshToken } = req.body;
+
+    await this._authService.logout(refreshToken);
+
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/api/v1/auth/refresh-token",
+    });
+
+    res.status(STATUS_CODES.OK).json({
+      message: MESSAGES.AUTH.LOGOUT_SUCCESS || "Logged out successfully",
+    });
+  };
+
+  logoutAllSessions = async (req: Request, res: Response) => {
+    const userId = req.body.userId;
+
+    await this._authService.logoutAllSessions(userId);
+
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/api/v1/auth/refresh-token",
+    });
+
+    res.status(STATUS_CODES.OK).json({
+      message: MESSAGES.AUTH.LOGOUT_ALL_SUCCESS,
+    });
+  };
 }
