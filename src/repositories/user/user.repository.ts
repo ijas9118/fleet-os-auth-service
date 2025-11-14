@@ -10,7 +10,7 @@ import type { IUserRepository } from "./user.repository.interface";
 @injectable()
 export class UserRepository implements IUserRepository {
   async getUserByEmail(email: string): Promise<IUser | null> {
-    return await User.findOne({ email }).select("+password");
+    return await User.findOne({ email });
   }
 
   async getUserById(id: string): Promise<IUser | null> {

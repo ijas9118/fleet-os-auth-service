@@ -9,7 +9,7 @@ import type { RegisterDTO } from "@/dto/register.dto";
 import type { VerifyOtpDTO } from "@/dto/verify-otp.dto";
 import type { ITokenRepository } from "@/repositories/token/token.repository.interface";
 import type { IUserRepository } from "@/repositories/user/user.repository.interface";
-import type { JWTPayload } from "@/types";
+import type { AuthTokens, AuthUser } from "@/dto/auth.response.dto";
 
 import { MESSAGES } from "@/config/constants/messages.constant";
 import { STATUS_CODES } from "@/config/constants/status-codes.constant";
@@ -19,6 +19,7 @@ import { HttpError } from "@/utils/http-error-class";
 
 import type { IOtpService } from "../otp/otp.service.interface";
 import type { IAuthService } from "./auth.service.interface";
+import { JWTPayload } from "@/types";
 
 export class AuthService implements IAuthService {
   constructor(
@@ -94,7 +95,7 @@ export class AuthService implements IAuthService {
   /*                                  Services                                  */
   /* -------------------------------------------------------------------------- */
 
-  async register(data: RegisterDTO) {
+  async register(data: RegisterDTO): Promise<void> {
     const existingUser = await this._userRepo.getUserByEmail(data.email);
     if (existingUser) {
       throw new HttpError(MESSAGES.AUTH.EMAIL_ALREADY_EXISTS, STATUS_CODES.CONFLICT);
@@ -104,12 +105,18 @@ export class AuthService implements IAuthService {
     await this._otpService.generateOTP({ ...data, password: hashedPassword });
   }
 
-  async verifyAndRegister(data: VerifyOtpDTO) {
+  async verifyAndRegister(data: VerifyOtpDTO): Promise<AuthUser> {
     const savedData = await this._otpService.verifyOtp(data);
-    return await this._userRepo.createUser(savedData);
+    const user = await this._userRepo.createUser(savedData);
+
+    return {
+      id: user._id.toString(),
+      email: user.email,
+      role: user.role,
+    };
   }
 
-  async login(data: LoginDTO) {
+  async login(data: LoginDTO): Promise<AuthTokens> {
     const user = await this._userRepo.getUserByEmail(data.email);
     if (!user) {
       throw new HttpError(MESSAGES.AUTH.INVALID_CREDENTIALS, STATUS_CODES.UNAUTHORIZED);
@@ -121,15 +128,14 @@ export class AuthService implements IAuthService {
     }
 
     const payload = this._createJwtPayload(user);
+    const tokens = this._generateTokens(payload);
 
-    const { accessToken, refreshToken } = this._generateTokens(payload);
+    await this._storeRefreshToken(user._id, tokens.refreshToken);
 
-    await this._storeRefreshToken(user._id, refreshToken);
-
-    return { accessToken, refreshToken };
+    return tokens;
   }
 
-  async refreshToken(token: string) {
+  async refreshToken(token: string): Promise<AuthTokens> {
     const decoded = this._decodeToken(token);
     const storedToken = await this._validateStoredRefreshToken(token, decoded);
 
@@ -142,14 +148,14 @@ export class AuthService implements IAuthService {
       role: decoded.role,
     };
 
-    const { accessToken, refreshToken: newRefreshToken } = this._generateTokens(payload);
+    const newTokens = this._generateTokens(payload);
 
-    await this._storeRefreshToken(storedToken.user.toString(), newRefreshToken);
+    await this._storeRefreshToken(storedToken.user.toString(), newTokens.refreshToken);
 
-    return { accessToken, refreshToken: newRefreshToken };
+    return newTokens;
   }
 
-  async logout(token: string) {
+  async logout(token: string): Promise<void> {
     const decoded = this._decodeToken(token); // ! Get userid from headers instead
     const storedToken = await this._tokenRepo.findByToken(token);
 
@@ -159,7 +165,7 @@ export class AuthService implements IAuthService {
     await this._tokenRepo.revoke({ token, user: decoded.sub });
   }
 
-  async logoutAllSessions(userId: string) {
+  async logoutAllSessions(userId: string): Promise<void> {
     await this._deleteAllTokens(userId);
   }
 }
