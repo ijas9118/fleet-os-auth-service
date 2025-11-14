@@ -6,3 +6,11 @@ export type JWTPayload = {
   role: Role;
   exp?: number;
 };
+
+export type StoredOtp = {
+  name: string;
+  email: string;
+  password: string;
+  otp: string;
+};
+
