@@ -1,5 +1,7 @@
 jest.mock("@/config/logger", () => ({
   warn: jest.fn(),
+  debug: jest.fn(),
+  info: jest.fn(),
   error: jest.fn(),
 }));
 

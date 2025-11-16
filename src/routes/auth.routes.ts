@@ -7,6 +7,7 @@ import TYPES from "@/di/types";
 import { LoginSchema } from "@/dto/login.dto";
 import { RegisterSchema } from "@/dto/register.dto";
 import { VerifyOtpSchema } from "@/dto/verify-otp.dto";
+import { requireAuth } from "@/middlewares/auth.middleware";
 import { validate } from "@/middlewares/validate.middleware";
 
 const router = Router();
@@ -18,7 +19,7 @@ router.post("/verify-otp", validate(VerifyOtpSchema), authController.verifyAndRe
 router.post("/resend-otp", authController.resendOTP);
 router.post("/login", validate(LoginSchema), authController.login);
 router.post("/refresh", authController.refresh);
-router.post("/logout", authController.logout);
-router.post("/logout-all", authController.logoutAllSessions);
+router.post("/logout", requireAuth, authController.logout);
+router.post("/logout-all", requireAuth, authController.logoutAllSessions);
 
 export default router;
