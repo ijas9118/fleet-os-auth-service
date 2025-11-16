@@ -4,10 +4,6 @@ import createApp from "@/app";
 import { STATUS_CODES } from "@/config/constants/status-codes.constant";
 import logger from "@/config/logger";
 
-jest.mock("@/config/logger", () => ({
-  warn: jest.fn(),
-}));
-
 const app = createApp();
 
 describe("createApp()", () => {

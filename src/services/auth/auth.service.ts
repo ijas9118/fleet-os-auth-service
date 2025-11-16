@@ -142,11 +142,7 @@ export class AuthService implements IAuthService {
     storedToken.revoked = true;
     await storedToken.save();
 
-    const payload: JWTPayload = {
-      sub: decoded.sub,
-      email: decoded.email,
-      role: decoded.role,
-    };
+    const payload: JWTPayload = this._createJwtPayload(decoded);
 
     const newTokens = this._generateTokens(payload);
 
@@ -155,14 +151,13 @@ export class AuthService implements IAuthService {
     return newTokens;
   }
 
-  async logout(token: string): Promise<void> {
-    const decoded = this._decodeToken(token); // ! Get userid from headers instead
+  async logout(token: string, user: string): Promise<void> {
     const storedToken = await this._tokenRepo.findByToken(token);
 
     if (!storedToken)
       return;
 
-    await this._tokenRepo.revoke({ token, user: decoded.sub });
+    await this._tokenRepo.revoke({ token, user });
   }
 
   async logoutAllSessions(userId: string): Promise<void> {

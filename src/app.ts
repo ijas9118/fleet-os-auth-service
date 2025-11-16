@@ -1,5 +1,6 @@
-import type { Application, Request, Response } from "express";
+import type { Application, NextFunction, Request, Response } from "express";
 
+import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
@@ -7,17 +8,26 @@ import helmet from "helmet";
 import routes from "@/routes";
 
 import { STATUS_CODES } from "./config/constants/status-codes.constant";
+import logger from "./config/logger";
 import { errorHandler, notFoundHandler } from "./middlewares/error-handler.middleware";
 import limiter from "./middlewares/rate-limit.middleware";
 
 export default function createApp(): Application {
   const app = express();
 
-  app.use(helmet());
+  app.set("trust proxy", 1);
+
   app.use(cors());
+  app.use(helmet());
   app.use(express.json());
+  app.use(cookieParser());
 
   app.use(limiter);
+
+  app.use((req: Request, _res: Response, next: NextFunction) => {
+    logger.debug(`${req.method} ${req.url}`);
+    next();
+  });
 
   app.get("/healthz", (_req: Request, res: Response) => {
     res.status(STATUS_CODES.OK).json({ status: "ok" });

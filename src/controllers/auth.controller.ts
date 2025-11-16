@@ -45,28 +45,61 @@ export class AuthController {
       httpOnly: true,
       secure: env.NODE_ENV === "production",
       sameSite: "strict",
-      path: "/api/v1/auth/refresh-token",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
-    res.status(STATUS_CODES.OK).json({ message: MESSAGES.AUTH.LOGIN_SUCCESS, data: { accessToken: tokens.accessToken } });
+    res.status(STATUS_CODES.OK).json({
+      message: MESSAGES.AUTH.LOGIN_SUCCESS,
+      data: { accessToken: tokens.accessToken },
+    });
   };
 
   refresh = async (req: Request, res: Response) => {
-    const { refreshToken } = req.body;
+    if (!req.cookies) {
+      res.status(STATUS_CODES.FORBIDDEN).json({
+        error: "No cookie",
+      });
+      return;
+    }
+    const refreshToken = req.cookies.refreshToken;
+    if (!refreshToken) {
+      res.status(STATUS_CODES.FORBIDDEN).json({
+        error: "No refresh token",
+      });
+      return;
+    }
 
     const tokens = await this._authService.refreshToken(refreshToken);
+    res.cookie("refreshToken", tokens.refreshToken, {
+      httpOnly: true,
+      secure: env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
     res.status(STATUS_CODES.OK).json({ message: MESSAGES.TOKEN.NEW_TOKENS, tokens });
   };
 
   logout = async (req: Request, res: Response) => {
-    const { refreshToken } = req.body;
+    if (!req.cookies) {
+      res.status(STATUS_CODES.FORBIDDEN).json({
+        error: "No cookie",
+      });
+      return;
+    }
+    const refreshToken = req.cookies.refreshToken;
+    if (!refreshToken) {
+      res.status(STATUS_CODES.FORBIDDEN).json({
+        error: "No refresh token",
+      });
+      return;
+    }
 
-    await this._authService.logout(refreshToken);
+    await this._authService.logout(refreshToken, req.user?.id as string);
 
     res.clearCookie("refreshToken", {
       httpOnly: true,
       secure: env.NODE_ENV === "production",
       sameSite: "strict",
-      path: "/api/v1/auth/refresh-token",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     res.status(STATUS_CODES.OK).json({
@@ -75,7 +108,7 @@ export class AuthController {
   };
 
   logoutAllSessions = async (req: Request, res: Response) => {
-    const userId = req.body.userId;
+    const userId = req.user?.id as string;
 
     await this._authService.logoutAllSessions(userId);
 

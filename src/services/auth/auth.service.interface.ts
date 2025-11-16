@@ -50,10 +50,11 @@ export type IAuthService = {
    * refresh token. Does nothing if the token is not found.
    *
    * @param token - The refresh token to revoke.
+   * @param user - The unique id of user.
    * @returns A promise that resolves once the token is revoked.
    * @throws HttpError if token parsing fails.
    */
-  logout: (token: string) => Promise<void>;
+  logout: (token: string, user: string) => Promise<void>;
 
   /**
    * Logs the user out from all devices by revoking all stored refresh tokens
