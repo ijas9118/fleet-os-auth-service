@@ -19,7 +19,10 @@ router.post("/verify-otp", validate(VerifyOtpSchema), authController.verifyAndRe
 router.post("/resend-otp", authController.resendOTP);
 router.post("/login", validate(LoginSchema), authController.login);
 router.post("/refresh", authController.refresh);
-router.post("/logout", requireAuth, authController.logout);
-router.post("/logout-all", requireAuth, authController.logoutAllSessions);
+
+router.use(requireAuth);
+
+router.post("/logout", authController.logout);
+router.post("/logout-all", authController.logoutAllSessions);
 
 export default router;
