@@ -1,6 +1,6 @@
 import type { SignOptions } from "jsonwebtoken";
 
-import bcrypt from "bcryptjs";
+import argon2 from "argon2";
 import { inject } from "inversify";
 import jwt from "jsonwebtoken";
 
@@ -33,11 +33,11 @@ export class AuthService implements IAuthService {
   /* -------------------------------------------------------------------------- */
 
   private _hashPassword(password: string): Promise<string> {
-    return bcrypt.hash(password, 10);
+    return argon2.hash(password, { type: argon2.argon2id });
   }
 
   private _validatePassword(raw: string, hashed: string): Promise<boolean> {
-    return bcrypt.compare(raw, hashed);
+    return argon2.verify(hashed, raw);
   }
 
   private _createJwtPayload(user: any) {
