@@ -1,7 +1,7 @@
+import { STATUS_CODES } from "@ahammedijas/fleet-os-shared";
 import request from "supertest";
 
 import createApp from "@/app";
-import { STATUS_CODES } from "@/config/constants/status-codes.constant";
 import logger from "@/config/logger";
 
 const app = createApp();

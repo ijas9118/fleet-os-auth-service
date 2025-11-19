@@ -20,6 +20,7 @@ router.post("/resend-otp", authController.resendOTP);
 router.post("/login", validate(LoginSchema), authController.login);
 router.post("/refresh", authController.refresh);
 
+/** Protected routes */
 router.use(requireAuth);
 
 router.post("/logout", authController.logout);

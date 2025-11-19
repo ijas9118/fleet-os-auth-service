@@ -1,8 +1,7 @@
+import type { Role } from "@ahammedijas/fleet-os-shared";
 import type { Document } from "mongoose";
 
 import { model, Schema } from "mongoose";
-
-import type { Role } from "@/config/constants/roles.constant";
 
 export type IUser = {
   email: string;

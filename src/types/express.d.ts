@@ -1,4 +1,4 @@
-import type { Role } from "@/config/constants/roles.constant";
+import type { Role } from "@ahammedijas/fleet-os-shared";
 
 declare global {
   namespace Express {

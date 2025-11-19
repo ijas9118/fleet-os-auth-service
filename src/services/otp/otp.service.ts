@@ -1,5 +1,6 @@
 import type { RedisClientType } from "redis";
 
+import { STATUS_CODES } from "@ahammedijas/fleet-os-shared";
 import { inject, injectable } from "inversify";
 import crypto from "node:crypto";
 
@@ -7,8 +8,7 @@ import type { GenerateOtpDTO } from "@/dto/generate-otp.dto";
 import type { VerifyOtpDTO } from "@/dto/verify-otp.dto";
 import type { StoredOtp } from "@/types";
 
-import { MESSAGES } from "@/config/constants/messages.constant";
-import { STATUS_CODES } from "@/config/constants/status-codes.constant";
+import { MESSAGES } from "@/config/messages.constant";
 import TYPES from "@/di/types";
 import { HttpError } from "@/utils/http-error-class";
 

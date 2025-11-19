@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 
+import { STATUS_CODES } from "@ahammedijas/fleet-os-shared";
 import { inject, injectable } from "inversify";
 
 import type { LoginDTO } from "@/dto/login.dto";
@@ -7,8 +8,7 @@ import type { RegisterDTO } from "@/dto/register.dto";
 import type { IAuthService } from "@/services/auth/auth.service.interface";
 import type { IOtpService } from "@/services/otp/otp.service.interface";
 
-import { MESSAGES } from "@/config/constants/messages.constant";
-import { STATUS_CODES } from "@/config/constants/status-codes.constant";
+import { MESSAGES } from "@/config/messages.constant";
 import env from "@/config/validate-env";
 import TYPES from "@/di/types";
 

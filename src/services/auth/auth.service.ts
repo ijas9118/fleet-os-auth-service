@@ -1,5 +1,6 @@
 import type { SignOptions } from "jsonwebtoken";
 
+import { STATUS_CODES } from "@ahammedijas/fleet-os-shared";
 import argon2 from "argon2";
 import { inject } from "inversify";
 import jwt from "jsonwebtoken";
@@ -12,8 +13,7 @@ import type { ITokenRepository } from "@/repositories/token/token.repository.int
 import type { IUserRepository } from "@/repositories/user/user.repository.interface";
 import type { JWTPayload } from "@/types";
 
-import { MESSAGES } from "@/config/constants/messages.constant";
-import { STATUS_CODES } from "@/config/constants/status-codes.constant";
+import { MESSAGES } from "@/config/messages.constant";
 import env from "@/config/validate-env";
 import TYPES from "@/di/types";
 import { HttpError } from "@/utils/http-error-class";

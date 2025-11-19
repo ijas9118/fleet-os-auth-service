@@ -1,9 +1,9 @@
+import { STATUS_CODES } from "@ahammedijas/fleet-os-shared";
 import express from "express";
 import request from "supertest";
 import { z } from "zod";
 
-import { MESSAGES } from "@/config/constants/messages.constant";
-import { STATUS_CODES } from "@/config/constants/status-codes.constant";
+import { MESSAGES } from "@/config/messages.constant";
 import { validate } from "@/middlewares/validate.middleware";
 
 const schema = z.object({
