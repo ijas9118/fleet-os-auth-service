@@ -26,5 +26,13 @@ export interface IUserRepository {
    */
   createUser: (data: Partial<IUser>) => Promise<IUser>;
 
+  /**
+   * Updates an existing user with the provided data.
+   *
+   * @param id - The ID of the user to update.
+   * @param data - A partial user object containing the fields to update.
+   *               Fields not included will remain unchanged.
+   * @returns The updated user object if found, otherwise null.
+   */
   updateUser: (id: string, data: Partial<IUser>) => Promise<IUser | null>;
 };

@@ -6,6 +6,7 @@ import argon2 from "argon2";
 import { inject } from "inversify";
 import jwt from "jsonwebtoken";
 
+import type { AcceptInviteDTO } from "@/dto/accept-invite.dto";
 import type { AuthTokens, AuthUser } from "@/dto/auth.response.dto";
 import type { InternalUserCreateDTO } from "@/dto/internal-user-create.dto";
 import type { LoginDTO } from "@/dto/login.dto";
@@ -94,15 +95,19 @@ export class AuthService implements IAuthService {
     return storedToken;
   }
 
+  private async _isUserAlreadyExist(email: string) {
+    const existingUser = await this._userRepo.getUserByEmail(email);
+    if (existingUser) {
+      throw new HttpError(MESSAGES.AUTH.EMAIL_ALREADY_EXISTS, STATUS_CODES.CONFLICT);
+    }
+  }
+
   /* -------------------------------------------------------------------------- */
   /*                                  Services                                  */
   /* -------------------------------------------------------------------------- */
 
   async register(data: RegisterDTO): Promise<void> {
-    const existingUser = await this._userRepo.getUserByEmail(data.email);
-    if (existingUser) {
-      throw new HttpError(MESSAGES.AUTH.EMAIL_ALREADY_EXISTS, STATUS_CODES.CONFLICT);
-    }
+    await this._isUserAlreadyExist(data.email);
 
     const hashedPassword = await this._hashPassword(data.password);
     await this._otpService.generateOTP({ ...data, password: hashedPassword });
@@ -138,11 +143,8 @@ export class AuthService implements IAuthService {
     return tokens;
   }
 
-  async createInternalUser(data: InternalUserCreateDTO) {
-    const existingUser = await this._userRepo.getUserByEmail(data.email);
-    if (existingUser) {
-      throw new HttpError(MESSAGES.AUTH.EMAIL_ALREADY_EXISTS, STATUS_CODES.CONFLICT);
-    }
+  async createInternalUser(data: InternalUserCreateDTO): Promise<void> {
+    await this._isUserAlreadyExist(data.email);
 
     const user = await this._userRepo.createUser({
       ...data,
@@ -154,11 +156,9 @@ export class AuthService implements IAuthService {
     await this._redisClient.set(`invite:${token}`, user._id.toString(), {
       expiration: { type: "EX", value: 24 * 60 * 60 },
     });
-
-    return { message: "Invite sent" };
   }
 
-  async setPasswordFromInvite(data: { token: string; password: string }) {
+  async setPasswordFromInvite(data: AcceptInviteDTO): Promise<void> {
     const key = `invite:${data.token}`;
 
     const userId = await this._redisClient.get(key);
@@ -172,8 +172,6 @@ export class AuthService implements IAuthService {
     await this._userRepo.updateUser(userId, { password: hashed });
 
     await this._redisClient.del(key);
-
-    return { message: "Password set successfully" };
   }
 
   async refreshToken(token: string): Promise<AuthTokens> {
