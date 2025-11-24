@@ -1,4 +1,5 @@
 import type { SignOptions } from "jsonwebtoken";
+import type { RedisClientType } from "redis";
 
 import { STATUS_CODES } from "@ahammedijas/fleet-os-shared";
 import argon2 from "argon2";
@@ -6,6 +7,7 @@ import { inject } from "inversify";
 import jwt from "jsonwebtoken";
 
 import type { AuthTokens, AuthUser } from "@/dto/auth.response.dto";
+import type { InternalUserCreateDTO } from "@/dto/internal-user-create.dto";
 import type { LoginDTO } from "@/dto/login.dto";
 import type { RegisterDTO } from "@/dto/register.dto";
 import type { VerifyOtpDTO } from "@/dto/verify-otp.dto";
@@ -26,6 +28,7 @@ export class AuthService implements IAuthService {
     @inject(TYPES.UserRepository) private _userRepo: IUserRepository,
     @inject(TYPES.OtpService) private _otpService: IOtpService,
     @inject(TYPES.TokenRepository) private _tokenRepo: ITokenRepository,
+    @inject(TYPES.RedisClient) private _redisClient: RedisClientType,
   ) {}
 
   /* -------------------------------------------------------------------------- */
@@ -122,7 +125,7 @@ export class AuthService implements IAuthService {
       throw new HttpError(MESSAGES.AUTH.INVALID_CREDENTIALS, STATUS_CODES.UNAUTHORIZED);
     }
 
-    const isPasswordValid = await this._validatePassword(data.password, user.password);
+    const isPasswordValid = await this._validatePassword(data.password, user.password!);
     if (!isPasswordValid) {
       throw new HttpError(MESSAGES.AUTH.INVALID_CREDENTIALS, STATUS_CODES.UNAUTHORIZED);
     }
@@ -133,6 +136,44 @@ export class AuthService implements IAuthService {
     await this._storeRefreshToken(user._id, tokens.refreshToken);
 
     return tokens;
+  }
+
+  async createInternalUser(data: InternalUserCreateDTO) {
+    const existingUser = await this._userRepo.getUserByEmail(data.email);
+    if (existingUser) {
+      throw new HttpError(MESSAGES.AUTH.EMAIL_ALREADY_EXISTS, STATUS_CODES.CONFLICT);
+    }
+
+    const user = await this._userRepo.createUser({
+      ...data,
+      password: null,
+    });
+
+    const token = crypto.randomUUID();
+
+    await this._redisClient.set(`invite:${token}`, user._id.toString(), {
+      expiration: { type: "EX", value: 24 * 60 * 60 },
+    });
+
+    return { message: "Invite sent" };
+  }
+
+  async setPasswordFromInvite(data: { token: string; password: string }) {
+    const key = `invite:${data.token}`;
+
+    const userId = await this._redisClient.get(key);
+
+    if (!userId) {
+      throw new HttpError("Invalid or expired invite token", 401);
+    }
+
+    const hashed = await this._hashPassword(data.password);
+
+    await this._userRepo.updateUser(userId, { password: hashed });
+
+    await this._redisClient.del(key);
+
+    return { message: "Password set successfully" };
   }
 
   async refreshToken(token: string): Promise<AuthTokens> {

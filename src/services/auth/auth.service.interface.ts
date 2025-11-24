@@ -1,4 +1,5 @@
 import type { AuthTokens, AuthUser } from "@/dto/auth.response.dto";
+import type { InternalUserCreateDTO } from "@/dto/internal-user-create.dto";
 import type { LoginDTO } from "@/dto/login.dto";
 import type { RegisterDTO } from "@/dto/register.dto";
 import type { VerifyOtpDTO } from "@/dto/verify-otp.dto";
@@ -64,4 +65,8 @@ export type IAuthService = {
    * @returns A promise that resolves once all tokens are revoked.
    */
   logoutAllSessions: (userId: string) => Promise<void>;
+
+  createInternalUser: (data: InternalUserCreateDTO) => any;
+
+  setPasswordFromInvite: (data: { token: string; password: string }) => any;
 };

@@ -5,7 +5,7 @@ import { model, Schema } from "mongoose";
 
 export type IUser = {
   email: string;
-  password: string;
+  password: string | null;
   name: string;
   role: Role;
   isActive: boolean;
@@ -24,7 +24,7 @@ const userSchema = new Schema<IUser>(
     },
     password: {
       type: String,
-      required: true,
+      required: false,
       minlength: 8,
     },
     name: {
