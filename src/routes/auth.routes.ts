@@ -4,10 +4,13 @@ import type { AuthController } from "@/controllers/auth.controller";
 
 import container from "@/di/container";
 import TYPES from "@/di/types";
+import { AcceptInviteSchema } from "@/dto/accept-invite.dto";
+import { InternalUserCreateSchema } from "@/dto/internal-user-create.dto";
 import { LoginSchema } from "@/dto/login.dto";
 import { RegisterSchema } from "@/dto/register.dto";
 import { VerifyOtpSchema } from "@/dto/verify-otp.dto";
 import { requireAuth } from "@/middlewares/auth.middleware";
+import { requireRole } from "@/middlewares/role.middleware";
 import { validate } from "@/middlewares/validate.middleware";
 
 const router = Router();
@@ -19,11 +22,17 @@ router.post("/verify-otp", validate(VerifyOtpSchema), authController.verifyAndRe
 router.post("/resend-otp", authController.resendOTP);
 router.post("/login", validate(LoginSchema), authController.login);
 router.post("/refresh", authController.refresh);
+router.post("/accept-invite", validate(AcceptInviteSchema), authController.acceptInvite);
 
 /** Protected routes */
 router.use(requireAuth);
 
 router.post("/logout", authController.logout);
 router.post("/logout-all", authController.logoutAllSessions);
+
+/** Admin routes */
+router.use(requireRole("admin", "operations_manager"));
+
+router.post("/invite-user", validate(InternalUserCreateSchema), authController.inviteUser);
 
 export default router;

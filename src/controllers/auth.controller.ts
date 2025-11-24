@@ -3,6 +3,7 @@ import type { Request, Response } from "express";
 import { STATUS_CODES } from "@ahammedijas/fleet-os-shared";
 import { inject, injectable } from "inversify";
 
+import type { InternalUserCreateDTO } from "@/dto/internal-user-create.dto";
 import type { LoginDTO } from "@/dto/login.dto";
 import type { RegisterDTO } from "@/dto/register.dto";
 import type { IAuthService } from "@/services/auth/auth.service.interface";
@@ -51,6 +52,18 @@ export class AuthController {
       message: MESSAGES.AUTH.LOGIN_SUCCESS,
       data: { accessToken: tokens.accessToken },
     });
+  };
+
+  inviteUser = async (req: Request, res: Response) => {
+    const data: InternalUserCreateDTO = req.body;
+    await this._authService.createInternalUser(data);
+    res.status(200).json({ message: MESSAGES.AUTH.INVITE_REQUEST_SENT });
+  };
+
+  acceptInvite = async (req: Request, res: Response) => {
+    const data: { token: string; password: string } = req.body;
+    await this._authService.setPasswordFromInvite(data);
+    res.status(200).json({ message: MESSAGES.AUTH.REGISTER_SUCCESS });
   };
 
   refresh = async (req: Request, res: Response) => {
@@ -116,7 +129,6 @@ export class AuthController {
       httpOnly: true,
       secure: env.NODE_ENV === "production",
       sameSite: "strict",
-      path: "/api/v1/auth/refresh-token",
     });
 
     res.status(STATUS_CODES.OK).json({

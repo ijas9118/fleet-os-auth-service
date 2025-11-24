@@ -6,6 +6,7 @@ export const MESSAGES = {
     EMAIL_ALREADY_EXISTS: "Email already registered.",
     LOGOUT_SUCCESS: "Logged out successfully",
     LOGOUT_ALL_SUCCESS: "Logged out from all sessions successfully",
+    INVITE_REQUEST_SENT: "Invitation has been sent",
   },
   TOKEN: {
     EXPIRED: "Access token expired.",

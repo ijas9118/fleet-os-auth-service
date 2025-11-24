@@ -1,4 +1,5 @@
 import type { AuthTokens, AuthUser } from "@/dto/auth.response.dto";
+import type { InternalUserCreateDTO } from "@/dto/internal-user-create.dto";
 import type { LoginDTO } from "@/dto/login.dto";
 import type { RegisterDTO } from "@/dto/register.dto";
 import type { VerifyOtpDTO } from "@/dto/verify-otp.dto";
@@ -64,4 +65,28 @@ export type IAuthService = {
    * @returns A promise that resolves once all tokens are revoked.
    */
   logoutAllSessions: (userId: string) => Promise<void>;
+
+  /**
+   * Creates an internal user (such as an manager or staff member).
+   * No password is set at creation time; instead, an invitation token is
+   * generated and stored. The token must later be used to set the user's
+   * initial password through the invite acceptance flow.
+   *
+   * @param data - Information required to create the internal user.
+   * @returns A promise that resolves once the user is created and the invite token is stored.
+   * @throws HttpError if a user with the same email already exists.
+   */
+  createInternalUser: (data: InternalUserCreateDTO) => Promise<void>;
+
+  /**
+   * Completes the internal user onboarding process by validating an invitation
+   * token and setting the user's password.
+   * If the token is valid, the associated user’s password is updated and the
+   * invitation token is deleted to prevent reuse.
+   *
+   * @param data - Contains the invite token and the new password to set.
+   * @returns A promise that resolves once the password has been successfully set.
+   * @throws HttpError if the token is invalid or expired.
+   */
+  setPasswordFromInvite: (data: { token: string; password: string }) => Promise<void>;
 };
