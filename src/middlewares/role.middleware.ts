@@ -1,4 +1,4 @@
-import type { Role } from "@ahammedijas/fleet-os-shared";
+import type { UserRole } from "@ahammedijas/fleet-os-shared";
 import type { NextFunction, Request, Response } from "express";
 
 /**
@@ -16,7 +16,7 @@ import type { NextFunction, Request, Response } from "express";
  * response is returned.
  * Otherwise, the request is passed to the next handler.
  */
-export function requireRole(...allowedRoles: Role[]) {
+export function requireRole(...allowedRoles: UserRole[]) {
   return (req: Request, res: Response, next: NextFunction) => {
     const userRole = req.user?.role;
 

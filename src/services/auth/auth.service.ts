@@ -1,17 +1,20 @@
 import type { SignOptions } from "jsonwebtoken";
 import type { RedisClientType } from "redis";
 
-import { STATUS_CODES } from "@ahammedijas/fleet-os-shared";
+import { STATUS_CODES, UserRole } from "@ahammedijas/fleet-os-shared";
 import argon2 from "argon2";
 import { inject } from "inversify";
 import jwt from "jsonwebtoken";
+import { v4 as uuidv4 } from "uuid";
 
 import type { AcceptInviteDTO } from "@/dto/accept-invite.dto";
 import type { AuthTokens, AuthUser } from "@/dto/auth.response.dto";
 import type { InternalUserCreateDTO } from "@/dto/internal-user-create.dto";
 import type { LoginDTO } from "@/dto/login.dto";
-import type { RegisterDTO } from "@/dto/register.dto";
+import type { TenantAdminRegisterDTO } from "@/dto/tenant-admin.register.dto";
+import type { TenantRegisterDTO } from "@/dto/tenant.register.dto";
 import type { VerifyOtpDTO } from "@/dto/verify-otp.dto";
+import type { ITenantRepository } from "@/repositories/tenant/tenant.repository.interface";
 import type { ITokenRepository } from "@/repositories/token/token.repository.interface";
 import type { IUserRepository } from "@/repositories/user/user.repository.interface";
 import type { JWTPayload } from "@/types";
@@ -27,6 +30,7 @@ import type { IAuthService } from "./auth.service.interface";
 export class AuthService implements IAuthService {
   constructor(
     @inject(TYPES.UserRepository) private _userRepo: IUserRepository,
+    @inject(TYPES.TenantRepository) private _tenantRepo: ITenantRepository,
     @inject(TYPES.OtpService) private _otpService: IOtpService,
     @inject(TYPES.TokenRepository) private _tokenRepo: ITokenRepository,
     @inject(TYPES.RedisClient) private _redisClient: RedisClientType,
@@ -36,6 +40,7 @@ export class AuthService implements IAuthService {
   /*                               Helper Methods                               */
   /* -------------------------------------------------------------------------- */
 
+  // Seperate file
   private _hashPassword(password: string): Promise<string> {
     return argon2.hash(password, { type: argon2.argon2id });
   }
@@ -45,7 +50,7 @@ export class AuthService implements IAuthService {
   }
 
   private _createJwtPayload(user: any) {
-    return { sub: user.id, email: user.email, role: user.role };
+    return { sub: user._id, email: user.email, role: user.role, tenantId: user.tenantId };
   }
 
   private _signToken(payload: object, expiresIn: string): string {
@@ -102,20 +107,56 @@ export class AuthService implements IAuthService {
     }
   }
 
+  private async _isTenantAlreadyExist(email: string) {
+    const existingTenant = await this._tenantRepo.getTenantByEmail(email);
+    if (existingTenant) {
+      throw new HttpError(MESSAGES.AUTH.TENANT_ALREADY_EXISTS, STATUS_CODES.CONFLICT);
+    }
+  }
+
   /* -------------------------------------------------------------------------- */
   /*                                  Services                                  */
   /* -------------------------------------------------------------------------- */
 
-  async register(data: RegisterDTO): Promise<void> {
+  async registerTenant(data: TenantRegisterDTO): Promise<void> {
+    await this._isTenantAlreadyExist(data.contactEmail);
+    await this._otpService.generateOTPForTenant(data);
+  }
+
+  async verifyTenantRegisteration(data: VerifyOtpDTO): Promise<any> {
+    const savedData = await this._otpService.verifyOtp(data);
+    if (savedData.type !== "tenant") {
+      throw new HttpError("Invalid OTP type", 400);
+    }
+
+    const tenantId = uuidv4();
+    const tenant = await this._tenantRepo.createTenant({ ...savedData.data, tenantId });
+
+    return {
+      tenantId: tenant.tenantId,
+      contactEmail: tenant.contactEmail,
+      state: tenant.status,
+    };
+  }
+
+  async registerTenantAdmin(data: TenantAdminRegisterDTO): Promise<void> {
     await this._isUserAlreadyExist(data.email);
 
+    const tenant = await this._tenantRepo.getTenantByTenantId(data.tenantId);
+    if (!tenant) {
+      throw new HttpError("Tenant not active", STATUS_CODES.FORBIDDEN);
+    }
+
     const hashedPassword = await this._hashPassword(data.password);
-    await this._otpService.generateOTP({ ...data, password: hashedPassword });
+    await this._otpService.generateOTP({ ...data, password: hashedPassword, role: UserRole.TENANT_ADMIN });
   }
 
   async verifyAndRegister(data: VerifyOtpDTO): Promise<AuthUser> {
     const savedData = await this._otpService.verifyOtp(data);
-    const user = await this._userRepo.createUser(savedData);
+    if (savedData.type !== "user") {
+      throw new HttpError("Invalid OTP type", 400);
+    }
+    const user = await this._userRepo.createUser(savedData.data);
 
     return {
       id: user._id.toString(),
@@ -128,6 +169,11 @@ export class AuthService implements IAuthService {
     const user = await this._userRepo.getUserByEmail(data.email);
     if (!user) {
       throw new HttpError(MESSAGES.AUTH.INVALID_CREDENTIALS, STATUS_CODES.UNAUTHORIZED);
+    }
+
+    const tenant = await this._tenantRepo.getTenantByTenantId(user.tenantId!);
+    if (!tenant) {
+      throw new HttpError("Tenant not active", STATUS_CODES.FORBIDDEN);
     }
 
     const isPasswordValid = await this._validatePassword(data.password, user.password!);
@@ -153,6 +199,7 @@ export class AuthService implements IAuthService {
 
     const token = crypto.randomUUID();
 
+    // Redis class
     await this._redisClient.set(`invite:${token}`, user._id.toString(), {
       expiration: { type: "EX", value: 24 * 60 * 60 },
     });

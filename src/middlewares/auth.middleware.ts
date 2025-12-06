@@ -1,4 +1,4 @@
-import type { Role } from "@ahammedijas/fleet-os-shared";
+import type { UserRole } from "@ahammedijas/fleet-os-shared";
 import type { NextFunction, Request, Response } from "express";
 
 import { STATUS_CODES } from "@ahammedijas/fleet-os-shared";
@@ -35,7 +35,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
 
   req.user = {
     id: userId as string,
-    role: userRole as Role,
+    role: userRole as UserRole,
     email: userEmail as string,
   };
 

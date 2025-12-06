@@ -1,10 +1,12 @@
+import type { UserRole } from "@ahammedijas/fleet-os-shared";
 import type { RedisClientType } from "redis";
 
 import { STATUS_CODES } from "@ahammedijas/fleet-os-shared";
 import { inject, injectable } from "inversify";
 import crypto from "node:crypto";
 
-import type { GenerateOtpDTO } from "@/dto/generate-otp.dto";
+import type { TenantAdminRegisterDTO } from "@/dto/tenant-admin.register.dto";
+import type { TenantRegisterDTO } from "@/dto/tenant.register.dto";
 import type { VerifyOtpDTO } from "@/dto/verify-otp.dto";
 import type { StoredOtp } from "@/types";
 
@@ -40,7 +42,7 @@ export class OtpService implements IOtpService {
     return JSON.parse(json);
   }
 
-  private async _saveOtp(email: string, data: StoredOtp): Promise<void> {
+  private async _saveOtp(email: string, data: StoredOtp | (TenantRegisterDTO & { otp: string })): Promise<void> {
     await this._redisClient.set(this._getRedisKey(email), this._serialize(data), {
       expiration: { type: "EX", value: OTP_TTL_SECONDS },
     });
@@ -50,10 +52,28 @@ export class OtpService implements IOtpService {
   /*                               Services                                     */
   /* -------------------------------------------------------------------------- */
 
-  async generateOTP({ name, email, password }: GenerateOtpDTO): Promise<void> {
+  async generateOTP(data: (TenantAdminRegisterDTO & { role: UserRole })): Promise<void> {
     const otp = this._generateCode();
 
-    await this._saveOtp(email, { name, email, password, otp });
+    const stored: StoredOtp = {
+      type: "user",
+      otp,
+      data,
+    };
+
+    await this._saveOtp(data.email, stored);
+  }
+
+  async generateOTPForTenant(data: TenantRegisterDTO): Promise<void> {
+    const otp = this._generateCode();
+
+    const stored: StoredOtp = {
+      type: "tenant",
+      otp,
+      data,
+    };
+
+    await this._saveOtp(data.contactEmail, stored);
   }
 
   async resendOTP(email: string): Promise<void> {
@@ -63,18 +83,23 @@ export class OtpService implements IOtpService {
     }
 
     const stored = this._deserialize<StoredOtp>(existingJson);
-    await this.generateOTP({ name: stored.name, email, password: stored.password });
+    if (stored.type === "tenant")
+      await this.generateOTPForTenant({ ...stored.data, contactEmail: email });
+    else
+      await this.generateOTP({ ...stored.data, email });
   }
 
   async verifyOtp({ email, otp }: VerifyOtpDTO): Promise<StoredOtp> {
     const redisKey = this._getRedisKey(email);
     const storedJson = await this._redisClient.get(redisKey);
+
     if (!storedJson) {
       throw new HttpError(MESSAGES.OTP.EXPIRED, STATUS_CODES.BAD_REQUEST);
     }
 
     const stored = this._deserialize<StoredOtp>(storedJson);
-    if (stored.email !== email || stored.otp !== otp) {
+
+    if (stored.otp !== otp) {
       throw new HttpError(MESSAGES.OTP.INVALID, STATUS_CODES.BAD_REQUEST);
     }
 

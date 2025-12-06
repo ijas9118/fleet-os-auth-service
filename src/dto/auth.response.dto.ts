@@ -1,4 +1,4 @@
-import type { Role } from "@ahammedijas/fleet-os-shared";
+import type { UserRole } from "@ahammedijas/fleet-os-shared";
 
 export type AuthTokens = {
   accessToken: string;
@@ -8,5 +8,5 @@ export type AuthTokens = {
 export type AuthUser = {
   id: string;
   email: string;
-  role: Role;
+  role: UserRole;
 };

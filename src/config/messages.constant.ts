@@ -1,8 +1,10 @@
 export const MESSAGES = {
   AUTH: {
-    REGISTER_SUCCESS: "User registered successfully.",
+    TENANT_REGISTER_SUCCESS: "Tenant registered successfully.",
+    USER_REGISTER_SUCCESS: "User registered successfully.",
     LOGIN_SUCCESS: "User logged in successfully.",
     INVALID_CREDENTIALS: "Invalid email or password.",
+    TENANT_ALREADY_EXISTS: "Tenant already registered.",
     EMAIL_ALREADY_EXISTS: "Email already registered.",
     LOGOUT_SUCCESS: "Logged out successfully",
     LOGOUT_ALL_SUCCESS: "Logged out from all sessions successfully",

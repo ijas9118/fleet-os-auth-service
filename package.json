@@ -15,10 +15,11 @@
     "lint:fix": "eslint . --fix",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "prepare": "husky"
   },
   "dependencies": {
-    "@ahammedijas/fleet-os-shared": "^1.0.1",
+    "@ahammedijas/fleet-os-shared": "^1.0.3",
     "argon2": "^0.44.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -31,6 +32,7 @@
     "mongoose": "^8.19.3",
     "redis": "^5.9.0",
     "reflect-metadata": "^0.2.2",
+    "uuid": "^13.0.0",
     "winston": "^3.18.3",
     "zod": "^4.1.12"
   },
@@ -45,6 +47,7 @@
     "@types/supertest": "^6.0.3",
     "eslint": "^9.39.1",
     "eslint-plugin-format": "^1.0.2",
+    "husky": "^9.1.7",
     "jest": "^30.2.0",
     "supertest": "^7.1.4",
     "ts-jest": "^29.4.5",

@@ -5,7 +5,9 @@ import { inject, injectable } from "inversify";
 
 import type { InternalUserCreateDTO } from "@/dto/internal-user-create.dto";
 import type { LoginDTO } from "@/dto/login.dto";
-import type { RegisterDTO } from "@/dto/register.dto";
+import type { TenantAdminRegisterDTO } from "@/dto/tenant-admin.register.dto";
+import type { TenantRegisterDTO } from "@/dto/tenant.register.dto";
+import type { VerifyOtpDTO } from "@/dto/verify-otp.dto";
 import type { IAuthService } from "@/services/auth/auth.service.interface";
 import type { IOtpService } from "@/services/otp/otp.service.interface";
 
@@ -20,16 +22,32 @@ export class AuthController {
     @inject(TYPES.OtpService) private _otpService: IOtpService,
   ) {}
 
-  register = async (req: Request, res: Response) => {
-    const data: RegisterDTO = req.body;
-    await this._authService.register(data);
+  registerTenant = async (req: Request, res: Response) => {
+    const data: TenantRegisterDTO = req.body;
+    await this._authService.registerTenant(data);
+    res.status(STATUS_CODES.OK).json({ message: MESSAGES.OTP.SENT });
+  };
+
+  registerUser = async (req: Request, res: Response) => {
+    const data: TenantAdminRegisterDTO = req.body;
+    await this._authService.registerTenantAdmin(data);
     res.status(STATUS_CODES.OK).json({ message: MESSAGES.OTP.SENT });
   };
 
   verifyAndRegister = async (req: Request, res: Response) => {
-    const { otp, email } = req.body;
-    await this._authService.verifyAndRegister({ otp, email });
-    res.status(STATUS_CODES.OK).json({ message: MESSAGES.AUTH.REGISTER_SUCCESS });
+    const body = req.body as VerifyOtpDTO;
+
+    if (body.type === "tenant") {
+      const result = await this._authService.verifyTenantRegisteration(body);
+      return res.status(STATUS_CODES.OK).json({ message: MESSAGES.AUTH.TENANT_REGISTER_SUCCESS, result });
+    }
+
+    if (body.type === "user") {
+      const result = await this._authService.verifyAndRegister(body);
+      return res.status(STATUS_CODES.OK).json({ message: MESSAGES.AUTH.USER_REGISTER_SUCCESS, result });
+    }
+
+    throw new Error("Invalid OTP type");
   };
 
   resendOTP = async (req: Request, res: Response) => {
@@ -63,7 +81,7 @@ export class AuthController {
   acceptInvite = async (req: Request, res: Response) => {
     const data: { token: string; password: string } = req.body;
     await this._authService.setPasswordFromInvite(data);
-    res.status(200).json({ message: MESSAGES.AUTH.REGISTER_SUCCESS });
+    res.status(200).json({ message: MESSAGES.AUTH.USER_REGISTER_SUCCESS });
   };
 
   refresh = async (req: Request, res: Response) => {
