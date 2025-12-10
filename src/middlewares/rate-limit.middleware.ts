@@ -1,7 +1,7 @@
+import { STATUS_CODES } from "@ahammedijas/fleet-os-shared";
 import rateLimit from "express-rate-limit";
 
-import { MESSAGES } from "@/config/constants/messages.constant";
-import { STATUS_CODES } from "@/config/constants/status-codes.constant";
+import { MESSAGES } from "@/config/messages.constant";
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,

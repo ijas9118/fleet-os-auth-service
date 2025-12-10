@@ -1,5 +1,6 @@
 import type { Application, NextFunction, Request, Response } from "express";
 
+import { STATUS_CODES } from "@ahammedijas/fleet-os-shared";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
@@ -7,7 +8,6 @@ import helmet from "helmet";
 
 import routes from "@/routes";
 
-import { STATUS_CODES } from "./config/constants/status-codes.constant";
 import logger from "./config/logger";
 import { errorHandler, notFoundHandler } from "./middlewares/error-handler.middleware";
 import limiter from "./middlewares/rate-limit.middleware";

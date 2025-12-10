@@ -1,4 +1,5 @@
-import { STATUS_CODES } from "@/config/constants/status-codes.constant";
+import { STATUS_CODES } from "@ahammedijas/fleet-os-shared";
+
 import logger from "@/config/logger";
 import env from "@/config/validate-env";
 import { errorHandler, notFoundHandler } from "@/middlewares/error-handler.middleware";

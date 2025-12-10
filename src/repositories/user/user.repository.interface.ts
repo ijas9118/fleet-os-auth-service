@@ -1,4 +1,3 @@
-import type { RegisterDTO } from "@/dto/register.dto";
 import type { IUser } from "@/models/user.model";
 
 export interface IUserRepository {
@@ -25,5 +24,15 @@ export interface IUserRepository {
    * @param data - User registration details.
    * @returns The newly created user object.
    */
-  createUser: (data: RegisterDTO) => Promise<IUser>;
+  createUser: (data: Partial<IUser>) => Promise<IUser>;
+
+  /**
+   * Updates an existing user with the provided data.
+   *
+   * @param id - The ID of the user to update.
+   * @param data - A partial user object containing the fields to update.
+   *               Fields not included will remain unchanged.
+   * @returns The updated user object if found, otherwise null.
+   */
+  updateUser: (id: string, data: Partial<IUser>) => Promise<IUser | null>;
 };

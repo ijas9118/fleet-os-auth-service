@@ -1,19 +1,25 @@
 import type { SignOptions } from "jsonwebtoken";
+import type { RedisClientType } from "redis";
 
-import bcrypt from "bcryptjs";
+import { STATUS_CODES, UserRole } from "@ahammedijas/fleet-os-shared";
+import argon2 from "argon2";
 import { inject } from "inversify";
 import jwt from "jsonwebtoken";
+import { v4 as uuidv4 } from "uuid";
 
+import type { AcceptInviteDTO } from "@/dto/accept-invite.dto";
 import type { AuthTokens, AuthUser } from "@/dto/auth.response.dto";
+import type { InternalUserCreateDTO } from "@/dto/internal-user-create.dto";
 import type { LoginDTO } from "@/dto/login.dto";
-import type { RegisterDTO } from "@/dto/register.dto";
+import type { TenantAdminRegisterDTO } from "@/dto/tenant-admin.register.dto";
+import type { TenantRegisterDTO } from "@/dto/tenant.register.dto";
 import type { VerifyOtpDTO } from "@/dto/verify-otp.dto";
+import type { ITenantRepository } from "@/repositories/tenant/tenant.repository.interface";
 import type { ITokenRepository } from "@/repositories/token/token.repository.interface";
 import type { IUserRepository } from "@/repositories/user/user.repository.interface";
 import type { JWTPayload } from "@/types";
 
-import { MESSAGES } from "@/config/constants/messages.constant";
-import { STATUS_CODES } from "@/config/constants/status-codes.constant";
+import { MESSAGES } from "@/config/messages.constant";
 import env from "@/config/validate-env";
 import TYPES from "@/di/types";
 import { HttpError } from "@/utils/http-error-class";
@@ -24,24 +30,27 @@ import type { IAuthService } from "./auth.service.interface";
 export class AuthService implements IAuthService {
   constructor(
     @inject(TYPES.UserRepository) private _userRepo: IUserRepository,
+    @inject(TYPES.TenantRepository) private _tenantRepo: ITenantRepository,
     @inject(TYPES.OtpService) private _otpService: IOtpService,
     @inject(TYPES.TokenRepository) private _tokenRepo: ITokenRepository,
+    @inject(TYPES.RedisClient) private _redisClient: RedisClientType,
   ) {}
 
   /* -------------------------------------------------------------------------- */
   /*                               Helper Methods                               */
   /* -------------------------------------------------------------------------- */
 
+  // Seperate file
   private _hashPassword(password: string): Promise<string> {
-    return bcrypt.hash(password, 10);
+    return argon2.hash(password, { type: argon2.argon2id });
   }
 
   private _validatePassword(raw: string, hashed: string): Promise<boolean> {
-    return bcrypt.compare(raw, hashed);
+    return argon2.verify(hashed, raw);
   }
 
   private _createJwtPayload(user: any) {
-    return { sub: user.id, email: user.email, role: user.role };
+    return { sub: user._id, email: user.email, role: user.role, tenantId: user.tenantId };
   }
 
   private _signToken(payload: object, expiresIn: string): string {
@@ -91,23 +100,63 @@ export class AuthService implements IAuthService {
     return storedToken;
   }
 
+  private async _isUserAlreadyExist(email: string) {
+    const existingUser = await this._userRepo.getUserByEmail(email);
+    if (existingUser) {
+      throw new HttpError(MESSAGES.AUTH.EMAIL_ALREADY_EXISTS, STATUS_CODES.CONFLICT);
+    }
+  }
+
+  private async _isTenantAlreadyExist(email: string) {
+    const existingTenant = await this._tenantRepo.getTenantByEmail(email);
+    if (existingTenant) {
+      throw new HttpError(MESSAGES.AUTH.TENANT_ALREADY_EXISTS, STATUS_CODES.CONFLICT);
+    }
+  }
+
   /* -------------------------------------------------------------------------- */
   /*                                  Services                                  */
   /* -------------------------------------------------------------------------- */
 
-  async register(data: RegisterDTO): Promise<void> {
-    const existingUser = await this._userRepo.getUserByEmail(data.email);
-    if (existingUser) {
-      throw new HttpError(MESSAGES.AUTH.EMAIL_ALREADY_EXISTS, STATUS_CODES.CONFLICT);
+  async registerTenant(data: TenantRegisterDTO): Promise<void> {
+    await this._isTenantAlreadyExist(data.contactEmail);
+    await this._otpService.generateOTPForTenant(data);
+  }
+
+  async verifyTenantRegisteration(data: VerifyOtpDTO): Promise<any> {
+    const savedData = await this._otpService.verifyOtp(data);
+    if (savedData.type !== "tenant") {
+      throw new HttpError("Invalid OTP type", 400);
+    }
+
+    const tenantId = uuidv4();
+    const tenant = await this._tenantRepo.createTenant({ ...savedData.data, tenantId });
+
+    return {
+      tenantId: tenant.tenantId,
+      contactEmail: tenant.contactEmail,
+      state: tenant.status,
+    };
+  }
+
+  async registerTenantAdmin(data: TenantAdminRegisterDTO): Promise<void> {
+    await this._isUserAlreadyExist(data.email);
+
+    const tenant = await this._tenantRepo.getTenantByTenantId(data.tenantId);
+    if (!tenant) {
+      throw new HttpError("Tenant not active", STATUS_CODES.FORBIDDEN);
     }
 
     const hashedPassword = await this._hashPassword(data.password);
-    await this._otpService.generateOTP({ ...data, password: hashedPassword });
+    await this._otpService.generateOTP({ ...data, password: hashedPassword, role: UserRole.TENANT_ADMIN });
   }
 
   async verifyAndRegister(data: VerifyOtpDTO): Promise<AuthUser> {
     const savedData = await this._otpService.verifyOtp(data);
-    const user = await this._userRepo.createUser(savedData);
+    if (savedData.type !== "user") {
+      throw new HttpError("Invalid OTP type", 400);
+    }
+    const user = await this._userRepo.createUser(savedData.data);
 
     return {
       id: user._id.toString(),
@@ -122,7 +171,12 @@ export class AuthService implements IAuthService {
       throw new HttpError(MESSAGES.AUTH.INVALID_CREDENTIALS, STATUS_CODES.UNAUTHORIZED);
     }
 
-    const isPasswordValid = await this._validatePassword(data.password, user.password);
+    const tenant = await this._tenantRepo.getTenantByTenantId(user.tenantId!);
+    if (!tenant) {
+      throw new HttpError("Tenant not active", STATUS_CODES.FORBIDDEN);
+    }
+
+    const isPasswordValid = await this._validatePassword(data.password, user.password!);
     if (!isPasswordValid) {
       throw new HttpError(MESSAGES.AUTH.INVALID_CREDENTIALS, STATUS_CODES.UNAUTHORIZED);
     }
@@ -133,6 +187,38 @@ export class AuthService implements IAuthService {
     await this._storeRefreshToken(user._id, tokens.refreshToken);
 
     return tokens;
+  }
+
+  async createInternalUser(data: InternalUserCreateDTO): Promise<void> {
+    await this._isUserAlreadyExist(data.email);
+
+    const user = await this._userRepo.createUser({
+      ...data,
+      password: null,
+    });
+
+    const token = crypto.randomUUID();
+
+    // Redis class
+    await this._redisClient.set(`invite:${token}`, user._id.toString(), {
+      expiration: { type: "EX", value: 24 * 60 * 60 },
+    });
+  }
+
+  async setPasswordFromInvite(data: AcceptInviteDTO): Promise<void> {
+    const key = `invite:${data.token}`;
+
+    const userId = await this._redisClient.get(key);
+
+    if (!userId) {
+      throw new HttpError("Invalid or expired invite token", 401);
+    }
+
+    const hashed = await this._hashPassword(data.password);
+
+    await this._userRepo.updateUser(userId, { password: hashed });
+
+    await this._redisClient.del(key);
   }
 
   async refreshToken(token: string): Promise<AuthTokens> {

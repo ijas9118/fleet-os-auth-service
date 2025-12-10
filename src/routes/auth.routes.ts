@@ -1,25 +1,41 @@
+import { UserRole } from "@ahammedijas/fleet-os-shared";
 import { Router } from "express";
 
 import type { AuthController } from "@/controllers/auth.controller";
 
 import container from "@/di/container";
 import TYPES from "@/di/types";
+import { AcceptInviteSchema } from "@/dto/accept-invite.dto";
+import { InternalUserCreateSchema } from "@/dto/internal-user-create.dto";
 import { LoginSchema } from "@/dto/login.dto";
-import { RegisterSchema } from "@/dto/register.dto";
+import { TenantAdminRegisterSchema } from "@/dto/tenant-admin.register.dto";
+import { TenantRegisterSchema } from "@/dto/tenant.register.dto";
 import { VerifyOtpSchema } from "@/dto/verify-otp.dto";
 import { requireAuth } from "@/middlewares/auth.middleware";
+import { requireRole } from "@/middlewares/role.middleware";
 import { validate } from "@/middlewares/validate.middleware";
 
 const router = Router();
 
 const authController = container.get<AuthController>(TYPES.AuthController);
 
-router.post("/register", validate(RegisterSchema), authController.register);
+router.post("/register-tenant", validate(TenantRegisterSchema), authController.registerTenant);
+router.post("/register-admin", validate(TenantAdminRegisterSchema), authController.registerUser);
 router.post("/verify-otp", validate(VerifyOtpSchema), authController.verifyAndRegister);
 router.post("/resend-otp", authController.resendOTP);
 router.post("/login", validate(LoginSchema), authController.login);
 router.post("/refresh", authController.refresh);
-router.post("/logout", requireAuth, authController.logout);
-router.post("/logout-all", requireAuth, authController.logoutAllSessions);
+router.post("/accept-invite", validate(AcceptInviteSchema), authController.acceptInvite);
+
+/** Protected routes */
+router.use(requireAuth);
+
+router.post("/logout", authController.logout);
+router.post("/logout-all", authController.logoutAllSessions);
+
+/** Admin routes */
+router.use(requireRole(UserRole.PLATFORM_ADMIN, UserRole.OPERATIONS_MANAGER));
+
+router.post("/invite-user", validate(InternalUserCreateSchema), authController.inviteUser);
 
 export default router;

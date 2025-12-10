@@ -1,10 +1,10 @@
 import type { NextFunction, Request, Response } from "express";
 import type { ZodError, ZodType } from "zod";
 
+import { STATUS_CODES } from "@ahammedijas/fleet-os-shared";
 import { z } from "zod";
 
-import { MESSAGES } from "@/config/constants/messages.constant";
-import { STATUS_CODES } from "@/config/constants/status-codes.constant";
+import { MESSAGES } from "@/config/messages.constant";
 
 export function validate(schema: ZodType<any>) {
   return (req: Request, res: Response, next: NextFunction) => {

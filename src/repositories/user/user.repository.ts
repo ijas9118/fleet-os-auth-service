@@ -1,6 +1,5 @@
 import { injectable } from "inversify";
 
-import type { RegisterDTO } from "@/dto/register.dto";
 import type { IUser } from "@/models/user.model";
 
 import User from "@/models/user.model";
@@ -17,8 +16,15 @@ export class UserRepository implements IUserRepository {
     return User.findById(id);
   }
 
-  async createUser(data: RegisterDTO): Promise<IUser> {
+  async createUser(data: Partial<IUser>): Promise<IUser> {
     const user = new User(data);
     return user.save();
+  }
+
+  async updateUser(id: string, data: Partial<IUser>): Promise<IUser | null> {
+    return User.findByIdAndUpdate(id, data, {
+      new: true,
+      runValidators: true,
+    });
   }
 }

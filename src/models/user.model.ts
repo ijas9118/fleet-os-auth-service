@@ -1,18 +1,19 @@
+import type { UserRole } from "@ahammedijas/fleet-os-shared";
 import type { Document } from "mongoose";
 
 import { model, Schema } from "mongoose";
 
-import type { Role } from "@/config/constants/roles.constant";
-
-export type IUser = {
+export interface IUser extends Document<string> {
   email: string;
-  password: string;
+  password: string | null;
   name: string;
-  role: Role;
+  role: UserRole;
+  tenantId?: string;
   isActive: boolean;
+  lastLoginAt?: Date;
   createdAt: Date;
   updatedAt: Date;
-} & Document<string>;
+}
 
 const userSchema = new Schema<IUser>(
   {
@@ -25,7 +26,7 @@ const userSchema = new Schema<IUser>(
     },
     password: {
       type: String,
-      required: true,
+      required: false,
       minlength: 8,
     },
     name: {
@@ -35,8 +36,20 @@ const userSchema = new Schema<IUser>(
     },
     role: {
       type: String,
-      enum: ["customer", "driver", "operations_manager", "warehouse_manager", "admin"],
-      default: "customer",
+      enum: [
+        "PLATFORM_ADMIN",
+        "TENANT_ADMIN",
+        "OPERATIONS_MANAGER",
+        "WAREHOUSE_MANAGER",
+        "DRIVER",
+      ],
+      required: true,
+    },
+    tenantId: {
+      type: String,
+    },
+    lastLoginAt: {
+      type: Date,
     },
     isActive: {
       type: Boolean,
