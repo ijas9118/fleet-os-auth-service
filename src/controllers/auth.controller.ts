@@ -28,6 +28,12 @@ export class AuthController {
     res.status(STATUS_CODES.OK).json({ message: MESSAGES.OTP.SENT });
   };
 
+  verifyTenant = async (req: Request, res: Response) => {
+    const { tenantId } = req.body;
+    const result = await this._authService.verifyTenantByAdmin(tenantId);
+    res.status(STATUS_CODES.OK).json({ message: "Tenant active", result });
+  };
+
   registerUser = async (req: Request, res: Response) => {
     const data: TenantAdminRegisterDTO = req.body;
     await this._authService.registerTenantAdmin(data);
@@ -74,7 +80,8 @@ export class AuthController {
 
   inviteUser = async (req: Request, res: Response) => {
     const data: InternalUserCreateDTO = req.body;
-    await this._authService.createInternalUser(data);
+    const tenantId = req.user?.tenantId;
+    await this._authService.createInternalUser(data, tenantId!);
     res.status(200).json({ message: MESSAGES.AUTH.INVITE_REQUEST_SENT });
   };
 

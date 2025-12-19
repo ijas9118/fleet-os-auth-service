@@ -16,6 +16,7 @@ const EnvSchema = z.object({
   PUBLIC_KEY: z.string(),
   ACCESS_TOKEN_EXP: z.string().default("15m"),
   REFRESH_TOKEN_EXP: z.string().default("7d"),
+  CLIENT_URL: z.string().url(),
 });
 
 export type env = z.infer<typeof EnvSchema>;

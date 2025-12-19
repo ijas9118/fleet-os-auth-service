@@ -34,8 +34,13 @@ router.post("/logout", authController.logout);
 router.post("/logout-all", authController.logoutAllSessions);
 
 /** Admin routes */
-router.use(requireRole(UserRole.PLATFORM_ADMIN, UserRole.OPERATIONS_MANAGER));
+router.post("/verify-tenant", requireRole(UserRole.PLATFORM_ADMIN), authController.verifyTenant);
 
-router.post("/invite-user", validate(InternalUserCreateSchema), authController.inviteUser);
+router.post(
+  "/invite-user",
+  requireRole(UserRole.TENANT_ADMIN, UserRole.PLATFORM_ADMIN),
+  validate(InternalUserCreateSchema),
+  authController.inviteUser,
+);
 
 export default router;
