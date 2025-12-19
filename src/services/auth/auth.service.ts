@@ -1,10 +1,7 @@
-import type { SignOptions } from "jsonwebtoken";
 import type { RedisClientType } from "redis";
 
 import { STATUS_CODES, UserRole } from "@ahammedijas/fleet-os-shared";
-import argon2 from "argon2";
 import { inject } from "inversify";
-import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
 
 import type { AcceptInviteDTO } from "@/dto/accept-invite.dto";
@@ -25,6 +22,7 @@ import TYPES from "@/di/types";
 import { HttpError } from "@/utils/http-error-class";
 
 import type { IOtpService } from "../otp/otp.service.interface";
+import type { AuthHelper } from "./auth.helper";
 import type { IAuthService } from "./auth.service.interface";
 
 export class AuthService implements IAuthService {
@@ -34,71 +32,8 @@ export class AuthService implements IAuthService {
     @inject(TYPES.OtpService) private _otpService: IOtpService,
     @inject(TYPES.TokenRepository) private _tokenRepo: ITokenRepository,
     @inject(TYPES.RedisClient) private _redisClient: RedisClientType,
+    @inject(TYPES.AuthHelper) private _authHelper: AuthHelper,
   ) {}
-
-  /* -------------------------------------------------------------------------- */
-  /*                               Helper Methods                               */
-  /* -------------------------------------------------------------------------- */
-
-  // Seperate file
-  private _hashPassword(password: string): Promise<string> {
-    return argon2.hash(password, { type: argon2.argon2id });
-  }
-
-  private _validatePassword(raw: string, hashed: string): Promise<boolean> {
-    return argon2.verify(hashed, raw);
-  }
-
-  private _createJwtPayload(user: any) {
-    return { sub: user._id, email: user.email, role: user.role, tenantId: user.tenantId };
-  }
-
-  private _signToken(payload: object, expiresIn: string): string {
-    const options = {
-      expiresIn,
-      algorithm: "RS256",
-    } as SignOptions;
-
-    return jwt.sign(payload, env.PRIVATE_KEY, options);
-  }
-
-  private _decodeToken(token: string): JWTPayload {
-    const decoded = jwt.decode(token) as JWTPayload;
-    if (!decoded || typeof decoded === "string") {
-      throw new HttpError(MESSAGES.TOKEN.INVALID_REFRESH_TOKEN, STATUS_CODES.UNAUTHORIZED);
-    }
-    return decoded;
-  }
-
-  private async _deleteAllTokens(userId: string) {
-    await this._tokenRepo.deleteAllTokens(userId);
-  }
-
-  private _generateTokens(payload: JWTPayload) {
-    const accessToken = this._signToken(payload, env.ACCESS_TOKEN_EXP);
-    const refreshToken = this._signToken(payload, env.REFRESH_TOKEN_EXP);
-    return { accessToken, refreshToken };
-  }
-
-  private async _storeRefreshToken(userId: string, token: string) {
-    const { exp } = this._decodeToken(token);
-    await this._tokenRepo.create({
-      user: userId,
-      token,
-      expiresAt: new Date(exp! * 1000),
-    });
-  }
-
-  private async _validateStoredRefreshToken(token: string, decoded: JWTPayload) {
-    const storedToken = await this._tokenRepo.findByToken(token);
-
-    if (!storedToken || storedToken.revoked) {
-      await this._deleteAllTokens(decoded.sub as string);
-      throw new HttpError(MESSAGES.TOKEN.INVALID_REFRESH_TOKEN, STATUS_CODES.UNAUTHORIZED);
-    }
-
-    return storedToken;
-  }
 
   private async _isUserAlreadyExist(email: string) {
     const existingUser = await this._userRepo.getUserByEmail(email);
@@ -114,9 +49,24 @@ export class AuthService implements IAuthService {
     }
   }
 
-  /* -------------------------------------------------------------------------- */
-  /*                                  Services                                  */
-  /* -------------------------------------------------------------------------- */
+  async verifyTenantByAdmin(tenantId: string): Promise<{ tenantLink: string }> {
+    const tenant = await this._tenantRepo.getTenantByTenantId(tenantId);
+    if (!tenant) {
+      throw new HttpError("Tenant not found", STATUS_CODES.NOT_FOUND);
+    }
+
+    if (tenant.status === "ACTIVE") {
+      throw new HttpError("Tenant already active", STATUS_CODES.CONFLICT);
+    }
+
+    // Update status
+    await this._tenantRepo.updateTenant(tenantId, { status: "ACTIVE" as any });
+
+    // Generate Admin Registration Link
+    const tenantLink = `${env.CLIENT_URL}/register-admin?tenantId=${tenantId}`;
+
+    return { tenantLink };
+  }
 
   async registerTenant(data: TenantRegisterDTO): Promise<void> {
     await this._isTenantAlreadyExist(data.contactEmail);
@@ -147,7 +97,7 @@ export class AuthService implements IAuthService {
       throw new HttpError("Tenant not active", STATUS_CODES.FORBIDDEN);
     }
 
-    const hashedPassword = await this._hashPassword(data.password);
+    const hashedPassword = await this._authHelper.hashPassword(data.password);
     await this._otpService.generateOTP({ ...data, password: hashedPassword, role: UserRole.TENANT_ADMIN });
   }
 
@@ -171,33 +121,39 @@ export class AuthService implements IAuthService {
       throw new HttpError(MESSAGES.AUTH.INVALID_CREDENTIALS, STATUS_CODES.UNAUTHORIZED);
     }
 
-    const tenant = await this._tenantRepo.getTenantByTenantId(user.tenantId!);
-    if (!tenant) {
-      throw new HttpError("Tenant not active", STATUS_CODES.FORBIDDEN);
+    if (user.role !== UserRole.PLATFORM_ADMIN) {
+      if (!user.tenantId) {
+        throw new HttpError("Tenant ID missing for non-admin user", STATUS_CODES.FORBIDDEN);
+      }
+      const tenant = await this._tenantRepo.getTenantByTenantId(user.tenantId);
+      if (!tenant) {
+        throw new HttpError("Tenant not active", STATUS_CODES.FORBIDDEN);
+      }
     }
 
-    const isPasswordValid = await this._validatePassword(data.password, user.password!);
+    const isPasswordValid = await this._authHelper.validatePassword(data.password, user.password!);
     if (!isPasswordValid) {
       throw new HttpError(MESSAGES.AUTH.INVALID_CREDENTIALS, STATUS_CODES.UNAUTHORIZED);
     }
 
-    const payload = this._createJwtPayload(user);
-    const tokens = this._generateTokens(payload);
+    const payload = this._authHelper.createJwtPayload(user);
+    const tokens = this._authHelper.generateTokens(payload);
 
     await this._storeRefreshToken(user._id, tokens.refreshToken);
 
     return tokens;
   }
 
-  async createInternalUser(data: InternalUserCreateDTO): Promise<void> {
+  async createInternalUser(data: InternalUserCreateDTO, tenantId: string): Promise<void> {
     await this._isUserAlreadyExist(data.email);
 
     const user = await this._userRepo.createUser({
       ...data,
       password: null,
+      tenantId,
     });
 
-    const token = crypto.randomUUID();
+    const token = uuidv4();
 
     // Redis class
     await this._redisClient.set(`invite:${token}`, user._id.toString(), {
@@ -214,7 +170,7 @@ export class AuthService implements IAuthService {
       throw new HttpError("Invalid or expired invite token", 401);
     }
 
-    const hashed = await this._hashPassword(data.password);
+    const hashed = await this._authHelper.hashPassword(data.password);
 
     await this._userRepo.updateUser(userId, { password: hashed });
 
@@ -222,15 +178,15 @@ export class AuthService implements IAuthService {
   }
 
   async refreshToken(token: string): Promise<AuthTokens> {
-    const decoded = this._decodeToken(token);
+    const decoded = this._authHelper.decodeToken(token);
     const storedToken = await this._validateStoredRefreshToken(token, decoded);
 
     storedToken.revoked = true;
     await storedToken.save();
 
-    const payload: JWTPayload = this._createJwtPayload(decoded);
+    const payload: JWTPayload = this._authHelper.createJwtPayload(decoded);
 
-    const newTokens = this._generateTokens(payload);
+    const newTokens = this._authHelper.generateTokens(payload);
 
     await this._storeRefreshToken(storedToken.user.toString(), newTokens.refreshToken);
 
@@ -248,5 +204,29 @@ export class AuthService implements IAuthService {
 
   async logoutAllSessions(userId: string): Promise<void> {
     await this._deleteAllTokens(userId);
+  }
+
+  private async _deleteAllTokens(userId: string) {
+    await this._tokenRepo.deleteAllTokens(userId);
+  }
+
+  private async _storeRefreshToken(userId: string, token: string) {
+    const { exp } = this._authHelper.decodeToken(token);
+    await this._tokenRepo.create({
+      user: userId,
+      token,
+      expiresAt: new Date(exp! * 1000),
+    });
+  }
+
+  private async _validateStoredRefreshToken(token: string, decoded: JWTPayload) {
+    const storedToken = await this._tokenRepo.findByToken(token);
+
+    if (!storedToken || storedToken.revoked) {
+      await this._deleteAllTokens(decoded.sub as string);
+      throw new HttpError(MESSAGES.TOKEN.INVALID_REFRESH_TOKEN, STATUS_CODES.UNAUTHORIZED);
+    }
+
+    return storedToken;
   }
 }

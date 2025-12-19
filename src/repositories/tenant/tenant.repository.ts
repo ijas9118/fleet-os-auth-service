@@ -13,7 +13,7 @@ export class TenantRepository implements ITenantRepository {
   }
 
   async getTenantByTenantId(tenantId: string): Promise<ITenant | null> {
-    return await Tenant.findOne({ tenantId, status: "ACTIVE" });
+    return await Tenant.findOne({ tenantId });
   }
 
   async createTenant(data: Partial<ITenant>): Promise<ITenant> {
@@ -21,8 +21,8 @@ export class TenantRepository implements ITenantRepository {
     return tenant.save();
   }
 
-  async updateTenant(id: string, data: Partial<ITenant>): Promise<ITenant | null> {
-    return Tenant.findByIdAndUpdate(id, data, {
+  async updateTenant(tenantId: string, data: Partial<ITenant>): Promise<ITenant | null> {
+    return Tenant.findOneAndUpdate({ tenantId }, data, {
       new: true,
       runValidators: true,
     });

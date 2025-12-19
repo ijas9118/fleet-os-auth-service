@@ -6,6 +6,7 @@ const TYPES = {
   TokenRepository: Symbol.for("TokenRepository"),
   OtpService: Symbol.for("OtpService"),
   RedisClient: Symbol.for("RedisClient"),
+  AuthHelper: Symbol.for("AuthHelper"),
 };
 
 export default TYPES;
