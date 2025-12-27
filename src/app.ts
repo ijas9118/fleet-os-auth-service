@@ -10,19 +10,14 @@ import routes from "@/routes";
 
 import logger from "./config/logger";
 import { errorHandler, notFoundHandler } from "./middlewares/error-handler.middleware";
-import limiter from "./middlewares/rate-limit.middleware";
 
 export default function createApp(): Application {
   const app = express();
-
-  app.set("trust proxy", 1);
 
   app.use(cors());
   app.use(helmet());
   app.use(express.json());
   app.use(cookieParser());
-
-  app.use(limiter);
 
   app.use((req: Request, _res: Response, next: NextFunction) => {
     logger.debug(`${req.method} ${req.url}`);

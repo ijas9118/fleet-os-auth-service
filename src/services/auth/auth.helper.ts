@@ -29,6 +29,7 @@ export class AuthHelper {
     const options = {
       expiresIn,
       algorithm: "RS256",
+      issuer: "fleet-os",
     } as SignOptions;
 
     return jwt.sign(payload, env.PRIVATE_KEY, options);
