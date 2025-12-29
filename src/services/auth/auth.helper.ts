@@ -21,8 +21,13 @@ export class AuthHelper {
     return argon2.verify(hashed, raw);
   }
 
-  createJwtPayload(user: any) {
-    return { sub: user._id, email: user.email, role: user.role, tenantId: user.tenantId };
+  createJwtPayload(data: any) {
+    return {
+      sub: data._id || data.sub,
+      email: data.email,
+      role: data.role,
+      tenantId: data.tenantId,
+    };
   }
 
   signToken(payload: object, expiresIn: string): string {

@@ -180,7 +180,6 @@ export class AuthService implements IAuthService {
   async refreshToken(token: string): Promise<AuthTokens> {
     const decoded = this._authHelper.decodeToken(token);
     const storedToken = await this._validateStoredRefreshToken(token, decoded);
-
     storedToken.revoked = true;
     await storedToken.save();
 
@@ -189,7 +188,6 @@ export class AuthService implements IAuthService {
     const newTokens = this._authHelper.generateTokens(payload);
 
     await this._storeRefreshToken(storedToken.user.toString(), newTokens.refreshToken);
-
     return newTokens;
   }
 
