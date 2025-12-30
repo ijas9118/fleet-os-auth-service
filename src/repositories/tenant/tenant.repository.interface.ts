@@ -8,4 +8,8 @@ export interface ITenantRepository {
   createTenant: (data: Partial<ITenant>) => Promise<ITenant>;
 
   updateTenant: (id: string, data: Partial<ITenant>) => Promise<ITenant | null>;
+
+  getTenantsByStatus: (status: string) => Promise<ITenant[]>;
+
+  getTenantsExcludingStatus: (status: string) => Promise<ITenant[]>;
 }

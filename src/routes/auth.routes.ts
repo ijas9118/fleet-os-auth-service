@@ -34,6 +34,8 @@ router.post("/logout", authController.logout);
 router.post("/logout-all", authController.logoutAllSessions);
 
 /** Admin routes */
+router.get("/tenants", requireRole(UserRole.PLATFORM_ADMIN), authController.getTenants);
+router.get("/tenants/pending", requireRole(UserRole.PLATFORM_ADMIN), authController.getPendingTenants);
 router.post("/verify-tenant", requireRole(UserRole.PLATFORM_ADMIN), authController.verifyTenant);
 
 router.post(

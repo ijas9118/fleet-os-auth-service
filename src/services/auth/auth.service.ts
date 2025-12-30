@@ -1,6 +1,6 @@
 import type { RedisClientType } from "redis";
 
-import { STATUS_CODES, UserRole } from "@ahammedijas/fleet-os-shared";
+import { STATUS_CODES, TenantStatus, UserRole } from "@ahammedijas/fleet-os-shared";
 import { inject } from "inversify";
 import { v4 as uuidv4 } from "uuid";
 
@@ -10,7 +10,9 @@ import type { InternalUserCreateDTO } from "@/dto/internal-user-create.dto";
 import type { LoginDTO } from "@/dto/login.dto";
 import type { TenantAdminRegisterDTO } from "@/dto/tenant-admin.register.dto";
 import type { TenantRegisterDTO } from "@/dto/tenant.register.dto";
+import type { TenantResponseDTO } from "@/dto/tenant.response.dto";
 import type { VerifyOtpDTO } from "@/dto/verify-otp.dto";
+import type { ITenant } from "@/models/tenant.model";
 import type { ITenantRepository } from "@/repositories/tenant/tenant.repository.interface";
 import type { ITokenRepository } from "@/repositories/token/token.repository.interface";
 import type { IUserRepository } from "@/repositories/user/user.repository.interface";
@@ -19,6 +21,7 @@ import type { JWTPayload } from "@/types";
 import { MESSAGES } from "@/config/messages.constant";
 import env from "@/config/validate-env";
 import TYPES from "@/di/types";
+import { TenantMapper } from "@/mappers/tenant.mapper";
 import { HttpError } from "@/utils/http-error-class";
 
 import type { IOtpService } from "../otp/otp.service.interface";
@@ -226,5 +229,15 @@ export class AuthService implements IAuthService {
     }
 
     return storedToken;
+  }
+
+  async getTenants(): Promise<TenantResponseDTO[]> {
+    const tenants = await this._tenantRepo.getTenantsExcludingStatus(TenantStatus.PENDING_VERIFICATION);
+    return TenantMapper.toDTOs(tenants);
+  }
+
+  async getPendingTenants(): Promise<TenantResponseDTO[]> {
+    const tenants = await this._tenantRepo.getTenantsByStatus(TenantStatus.PENDING_VERIFICATION);
+    return TenantMapper.toDTOs(tenants);
   }
 }

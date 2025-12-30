@@ -27,4 +27,12 @@ export class TenantRepository implements ITenantRepository {
       runValidators: true,
     });
   }
+
+  async getTenantsByStatus(status: string): Promise<ITenant[]> {
+    return await Tenant.find({ status });
+  }
+
+  async getTenantsExcludingStatus(status: string): Promise<ITenant[]> {
+    return await Tenant.find({ status: { $ne: status } });
+  }
 }

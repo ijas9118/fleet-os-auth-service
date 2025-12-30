@@ -160,4 +160,14 @@ export class AuthController {
       message: MESSAGES.AUTH.LOGOUT_ALL_SUCCESS,
     });
   };
+
+  getTenants = async (req: Request, res: Response) => {
+    const tenants = await this._authService.getTenants();
+    res.status(STATUS_CODES.OK).json({ result: tenants });
+  };
+
+  getPendingTenants = async (req: Request, res: Response) => {
+    const tenants = await this._authService.getPendingTenants();
+    res.status(STATUS_CODES.OK).json({ result: tenants });
+  };
 }
