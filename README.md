@@ -189,10 +189,12 @@ All endpoints are prefixed with `/api/v1/auth`.
 
 ### 👮 Admin Operations
 
-| Method | Endpoint         | Role             | Description                          |
-| :----- | :--------------- | :--------------- | :----------------------------------- |
-| `POST` | `/verify-tenant` | `PLATFORM_ADMIN` | Verify tenant & generate admin link  |
-| `POST` | `/invite-user`   | `ADMINs`         | Invite internal users (Driver, etc.) |
+| Method | Endpoint           | Role             | Description                          |
+| :----- | :----------------- | :--------------- | :----------------------------------- |
+| `GET`  | `/tenants`         | `PLATFORM_ADMIN` | List active tenants                  |
+| `GET`  | `/tenants/pending` | `PLATFORM_ADMIN` | List pending tenants                 |
+| `POST` | `/verify-tenant`   | `PLATFORM_ADMIN` | Verify tenant & generate admin link  |
+| `POST` | `/invite-user`     | `ADMINs`         | Invite internal users (Driver, etc.) |
 
 ---
 
