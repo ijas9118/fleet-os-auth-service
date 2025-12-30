@@ -12,7 +12,6 @@ import type { TenantAdminRegisterDTO } from "@/dto/tenant-admin.register.dto";
 import type { TenantRegisterDTO } from "@/dto/tenant.register.dto";
 import type { TenantResponseDTO } from "@/dto/tenant.response.dto";
 import type { VerifyOtpDTO } from "@/dto/verify-otp.dto";
-import type { ITenant } from "@/models/tenant.model";
 import type { ITenantRepository } from "@/repositories/tenant/tenant.repository.interface";
 import type { ITokenRepository } from "@/repositories/token/token.repository.interface";
 import type { IUserRepository } from "@/repositories/user/user.repository.interface";

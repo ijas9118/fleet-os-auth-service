@@ -1,4 +1,4 @@
-import { TenantStatus } from "@ahammedijas/fleet-os-shared";
+import type { TenantStatus } from "@ahammedijas/fleet-os-shared";
 
 export interface TenantResponseDTO {
   tenantId: string;

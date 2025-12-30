@@ -1,5 +1,5 @@
-import type { ITenant } from "@/models/tenant.model";
 import type { TenantResponseDTO } from "@/dto/tenant.response.dto";
+import type { ITenant } from "@/models/tenant.model";
 
 export class TenantMapper {
   static toDTO(tenant: ITenant): TenantResponseDTO {
@@ -16,6 +16,6 @@ export class TenantMapper {
   }
 
   static toDTOs(tenants: ITenant[]): TenantResponseDTO[] {
-    return tenants.map((tenant) => TenantMapper.toDTO(tenant));
+    return tenants.map(tenant => TenantMapper.toDTO(tenant));
   }
 }

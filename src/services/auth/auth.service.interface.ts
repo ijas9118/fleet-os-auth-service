@@ -5,7 +5,6 @@ import type { TenantAdminRegisterDTO } from "@/dto/tenant-admin.register.dto";
 import type { TenantRegisterDTO } from "@/dto/tenant.register.dto";
 import type { TenantResponseDTO } from "@/dto/tenant.response.dto";
 import type { VerifyOtpDTO } from "@/dto/verify-otp.dto";
-import type { ITenant } from "@/models/tenant.model";
 
 export type IAuthService = {
 
