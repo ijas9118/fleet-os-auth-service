@@ -35,4 +35,13 @@ export interface IUserRepository {
    * @returns The updated user object if found, otherwise null.
    */
   updateUser: (id: string, data: Partial<IUser>) => Promise<IUser | null>;
+
+  /**
+   * Retrieves users by tenant ID and role.
+   *
+   * @param tenantId - The tenant ID.
+   * @param role - The user role.
+   * @returns A list of users.
+   */
+  getUsersByTenantAndRole: (tenantId: string, role: string) => Promise<IUser[]>;
 };

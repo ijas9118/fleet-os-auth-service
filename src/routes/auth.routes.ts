@@ -36,7 +36,9 @@ router.post("/logout-all", authController.logoutAllSessions);
 /** Admin routes */
 router.get("/tenants", requireRole(UserRole.PLATFORM_ADMIN), authController.getTenants);
 router.get("/tenants/pending", requireRole(UserRole.PLATFORM_ADMIN), authController.getPendingTenants);
+router.get("/tenants/rejected", requireRole(UserRole.PLATFORM_ADMIN), authController.getRejectedTenants);
 router.post("/verify-tenant", requireRole(UserRole.PLATFORM_ADMIN), authController.verifyTenant);
+router.post("/reject-tenant", requireRole(UserRole.PLATFORM_ADMIN), authController.rejectTenant);
 
 router.post(
   "/invite-user",

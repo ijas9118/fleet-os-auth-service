@@ -7,6 +7,7 @@ const TYPES = {
   OtpService: Symbol.for("OtpService"),
   RedisClient: Symbol.for("RedisClient"),
   AuthHelper: Symbol.for("AuthHelper"),
+  TenantService: Symbol.for("TenantService"),
 };
 
 export default TYPES;

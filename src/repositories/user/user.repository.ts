@@ -27,4 +27,8 @@ export class UserRepository implements IUserRepository {
       runValidators: true,
     });
   }
+
+  async getUsersByTenantAndRole(tenantId: string, role: string): Promise<IUser[]> {
+    return User.find({ tenantId, role });
+  }
 }

@@ -98,4 +98,16 @@ describe("userRepository", () => {
       expect(result).toBeNull();
     });
   });
+
+  describe("getUsersByTenantAndRole", () => {
+    it("should return users matching tenant and role", async () => {
+      const mockUsers = [{ _id: "123", tenantId: "tid", role: "role" }];
+      (User.find as jest.Mock).mockResolvedValue(mockUsers);
+
+      const result = await userRepository.getUsersByTenantAndRole("tid", "role");
+
+      expect(User.find).toHaveBeenCalledWith({ tenantId: "tid", role: "role" });
+      expect(result).toEqual(mockUsers);
+    });
+  });
 });

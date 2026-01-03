@@ -52,11 +52,11 @@ describe("authService", () => {
 
     authService = new AuthService(
       mockUserRepo,
-      mockTenantRepo,
-      mockOtpService,
       mockTokenRepo,
       mockRedisClient,
       mockAuthHelper,
+      mockTenantRepo,
+      mockOtpService,
     );
   });
 
@@ -165,25 +165,6 @@ describe("authService", () => {
     });
   });
 
-  describe("registerTenant", () => {
-    it("should register tenant successfully", async () => {
-      mockTenantRepo.getTenantByEmail.mockResolvedValue(null);
-
-      await authService.registerTenant({ contactEmail: "test@fleet.com" } as any);
-
-      expect(mockTenantRepo.getTenantByEmail).toHaveBeenCalledWith("test@fleet.com");
-      expect(mockOtpService.generateOTPForTenant).toHaveBeenCalled();
-    });
-
-    it("should throw if tenant exists", async () => {
-      mockTenantRepo.getTenantByEmail.mockResolvedValue({} as any);
-
-      await expect(authService.registerTenant({ contactEmail: "test@fleet.com" } as any))
-        .rejects
-        .toThrow(HttpError);
-    });
-  });
-
   describe("refreshToken", () => {
     it("should refresh tokens successfully", async () => {
       const mockDecoded = { sub: "userId", exp: 1234567890 };
@@ -230,45 +211,6 @@ describe("authService", () => {
       mockTokenRepo.findByToken.mockResolvedValue(null);
       await authService.logout("token", "userId");
       expect(mockTokenRepo.revoke).not.toHaveBeenCalled();
-    });
-  });
-
-  describe("verifyTenantByAdmin", () => {
-    it("should verify tenant successfully", async () => {
-      mockTenantRepo.getTenantByTenantId.mockResolvedValue({ status: "PENDING" });
-      mockTenantRepo.updateTenant.mockResolvedValue({});
-
-      const result = await authService.verifyTenantByAdmin("tenantId");
-
-      expect(mockTenantRepo.updateTenant).toHaveBeenCalledWith("tenantId", { status: "ACTIVE" });
-      expect(result).toHaveProperty("tenantLink");
-    });
-
-    it("should throw if tenant not found", async () => {
-      mockTenantRepo.getTenantByTenantId.mockResolvedValue(null);
-      await expect(authService.verifyTenantByAdmin("tenantId")).rejects.toThrow("Tenant not found");
-    });
-
-    it("should throw if tenant already active", async () => {
-      mockTenantRepo.getTenantByTenantId.mockResolvedValue({ status: "ACTIVE" });
-      await expect(authService.verifyTenantByAdmin("tenantId")).rejects.toThrow("Tenant already active");
-    });
-  });
-
-  describe("verifyTenantRegisteration", () => {
-    it("should verify and create tenant", async () => {
-      mockOtpService.verifyOtp.mockResolvedValue({ type: "tenant", data: { contactEmail: "test@test.com" } });
-      mockTenantRepo.createTenant.mockResolvedValue({ tenantId: "tid", contactEmail: "test@test.com", status: "PENDING" });
-
-      const result = await authService.verifyTenantRegisteration({ otp: "123" } as any);
-
-      expect(mockTenantRepo.createTenant).toHaveBeenCalled();
-      expect(result.tenantId).toBe("tid");
-    });
-
-    it("should throw if invalid otp type", async () => {
-      mockOtpService.verifyOtp.mockResolvedValue({ type: "user" });
-      await expect(authService.verifyTenantRegisteration({ otp: "123" } as any)).rejects.toThrow("Invalid OTP type");
     });
   });
 

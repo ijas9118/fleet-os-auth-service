@@ -4,12 +4,16 @@ import type { ITenant } from "@/models/tenant.model";
 
 import Tenant from "@/models/tenant.model";
 
-import type { ITenantRepository } from "./tenant.repository.interface";
+import type {
+  ITenantRepository,
+  PaginatedResult,
+  PaginationOptions,
+} from "./tenant.repository.interface";
 
 @injectable()
 export class TenantRepository implements ITenantRepository {
   async getTenantByEmail(email: string): Promise<ITenant | null> {
-    return await Tenant.findOne({ email });
+    return await Tenant.findOne({ contactEmail: email });
   }
 
   async getTenantByTenantId(tenantId: string): Promise<ITenant | null> {
@@ -28,11 +32,64 @@ export class TenantRepository implements ITenantRepository {
     });
   }
 
-  async getTenantsByStatus(status: string): Promise<ITenant[]> {
-    return await Tenant.find({ status });
+  async getTenantsByStatus(
+    status: string,
+    options?: PaginationOptions,
+  ): Promise<PaginatedResult<ITenant>> {
+    const page = options?.page || 1;
+    const limit = options?.limit || 10;
+    const search = options?.search || "";
+    const skip = (page - 1) * limit;
+
+    const query: any = { status };
+
+    if (search) {
+      query.$or = [
+        { companyName: { $regex: search, $options: "i" } },
+        { contactEmail: { $regex: search, $options: "i" } },
+        { contactPerson: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const [data, total] = await Promise.all([
+      Tenant.find(query).skip(skip).limit(limit).sort({ createdAt: -1 }),
+      Tenant.countDocuments(query),
+    ]);
+
+    return { data, total };
   }
 
-  async getTenantsExcludingStatus(status: string): Promise<ITenant[]> {
-    return await Tenant.find({ status: { $ne: status } });
+  async getTenantsExcludingStatus(
+    status: string | string[],
+    options?: PaginationOptions,
+  ): Promise<PaginatedResult<ITenant>> {
+    const page = options?.page || 1;
+    const limit = options?.limit || 10;
+    const search = options?.search || "";
+    const skip = (page - 1) * limit;
+
+    const query: any = {};
+
+    if (Array.isArray(status)) {
+      query.status = { $nin: status };
+    }
+    else {
+      query.status = { $ne: status };
+    }
+
+    if (search) {
+      query.$or = [
+        { companyName: { $regex: search, $options: "i" } },
+        { contactEmail: { $regex: search, $options: "i" } },
+        { contactPerson: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const [data, total] = await Promise.all([
+      Tenant.find(query).skip(skip).limit(limit).sort({ createdAt: -1 }),
+      Tenant.countDocuments(query),
+    ]);
+
+    return { data, total };
   }
 }

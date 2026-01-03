@@ -20,7 +20,7 @@ describe("tenantRepository", () => {
 
       const result = await tenantRepository.getTenantByEmail("test@example.com");
 
-      expect(Tenant.findOne).toHaveBeenCalledWith({ email: "test@example.com" });
+      expect(Tenant.findOne).toHaveBeenCalledWith({ contactEmail: "test@example.com" });
       expect(result).toEqual(mockTenant);
     });
 
@@ -75,6 +75,105 @@ describe("tenantRepository", () => {
         runValidators: true,
       });
       expect(result).toEqual(mockUpdatedTenant);
+    });
+  });
+
+  describe("getTenantsByStatus", () => {
+    it("should return paginated tenants with default options", async () => {
+      const mockTenants = [{ _id: "1" }, { _id: "2" }];
+      const mockFind = {
+        skip: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        sort: jest.fn().mockResolvedValue(mockTenants),
+      };
+      (Tenant.find as jest.Mock).mockReturnValue(mockFind);
+      (Tenant.countDocuments as jest.Mock).mockResolvedValue(2);
+
+      const result = await tenantRepository.getTenantsByStatus("ACTIVE");
+
+      expect(Tenant.find).toHaveBeenCalledWith({ status: "ACTIVE" });
+      expect(mockFind.skip).toHaveBeenCalledWith(0);
+      expect(mockFind.limit).toHaveBeenCalledWith(10);
+      expect(result).toEqual({ data: mockTenants, total: 2 });
+    });
+
+    it("should apply search query if provided", async () => {
+      const mockTenants = [{ _id: "1", companyName: "Fleet" }];
+      const mockFind = {
+        skip: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        sort: jest.fn().mockResolvedValue(mockTenants),
+      };
+      (Tenant.find as jest.Mock).mockReturnValue(mockFind);
+      (Tenant.countDocuments as jest.Mock).mockResolvedValue(1);
+
+      await tenantRepository.getTenantsByStatus("ACTIVE", { search: "Fleet", page: 1, limit: 10 });
+
+      const expectedQuery = {
+        status: "ACTIVE",
+        $or: [
+          { companyName: { $regex: "Fleet", $options: "i" } },
+          { contactEmail: { $regex: "Fleet", $options: "i" } },
+          { contactPerson: { $regex: "Fleet", $options: "i" } },
+        ],
+      };
+      expect(Tenant.find).toHaveBeenCalledWith(expectedQuery);
+    });
+  });
+
+  describe("getTenantsExcludingStatus", () => {
+    it("should exclude single status", async () => {
+      const mockTenants = [{ _id: "1" }];
+      const mockFind = {
+        skip: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        sort: jest.fn().mockResolvedValue(mockTenants),
+      };
+      (Tenant.find as jest.Mock).mockReturnValue(mockFind);
+      (Tenant.countDocuments as jest.Mock).mockResolvedValue(1);
+
+      await tenantRepository.getTenantsExcludingStatus("REJECTED");
+
+      expect(Tenant.find).toHaveBeenCalledWith({ status: { $ne: "REJECTED" } });
+    });
+
+    it("should exclude multiple statuses", async () => {
+      const mockTenants = [{ _id: "1" }];
+      const mockFind = {
+        skip: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        sort: jest.fn().mockResolvedValue(mockTenants),
+      };
+      (Tenant.find as jest.Mock).mockReturnValue(mockFind);
+      (Tenant.countDocuments as jest.Mock).mockResolvedValue(1);
+
+      await tenantRepository.getTenantsExcludingStatus(["REJECTED", "PENDING"]);
+
+      expect(Tenant.find).toHaveBeenCalledWith({ status: { $nin: ["REJECTED", "PENDING"] } });
+    });
+
+    it("should apply search query", async () => {
+      const mockTenants = [{ _id: "1" }];
+      const mockFind = {
+        skip: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        sort: jest.fn().mockResolvedValue(mockTenants),
+      };
+      (Tenant.find as jest.Mock).mockReturnValue(mockFind);
+      (Tenant.countDocuments as jest.Mock).mockResolvedValue(1);
+
+      await tenantRepository.getTenantsExcludingStatus("REJECTED", { search: "test" });
+
+      const expectedQuery = {
+        status: { $ne: "REJECTED" },
+        $or: [
+          { companyName: { $regex: "test", $options: "i" } },
+          { contactEmail: { $regex: "test", $options: "i" } },
+          { contactPerson: { $regex: "test", $options: "i" } },
+        ],
+      };
+
+      expect(Tenant.find).toHaveBeenCalledWith(expectedQuery);
     });
   });
 });

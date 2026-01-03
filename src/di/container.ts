@@ -5,6 +5,7 @@ import type { ITokenRepository } from "@/repositories/token/token.repository.int
 import type { IUserRepository } from "@/repositories/user/user.repository.interface";
 import type { IAuthService } from "@/services/auth/auth.service.interface";
 import type { IOtpService } from "@/services/otp/otp.service.interface";
+import type { ITenantService } from "@/services/tenant/tenant.service.interface";
 
 import { initRedisClient } from "@/config/redis.config";
 import { AuthController } from "@/controllers/auth.controller";
@@ -14,6 +15,7 @@ import { UserRepository } from "@/repositories/user/user.repository";
 import { AuthHelper } from "@/services/auth/auth.helper";
 import { AuthService } from "@/services/auth/auth.service";
 import { OtpService } from "@/services/otp/otp.service";
+import { TenantService } from "@/services/tenant/tenant.service";
 
 import TYPES from "./types";
 
@@ -24,6 +26,7 @@ const redisClient = initRedisClient();
 container.bind(TYPES.RedisClient).toConstantValue(redisClient);
 
 container.bind<IAuthService>(TYPES.AuthService).to(AuthService);
+container.bind<ITenantService>(TYPES.TenantService).to(TenantService);
 container.bind<AuthHelper>(TYPES.AuthHelper).to(AuthHelper);
 container.bind<IUserRepository>(TYPES.UserRepository).to(UserRepository);
 container.bind<ITenantRepository>(TYPES.TenantRepository).to(TenantRepository);

@@ -10,6 +10,7 @@ import type { TenantRegisterDTO } from "@/dto/tenant.register.dto";
 import type { VerifyOtpDTO } from "@/dto/verify-otp.dto";
 import type { IAuthService } from "@/services/auth/auth.service.interface";
 import type { IOtpService } from "@/services/otp/otp.service.interface";
+import type { ITenantService } from "@/services/tenant/tenant.service.interface";
 
 import { MESSAGES } from "@/config/messages.constant";
 import env from "@/config/validate-env";
@@ -19,19 +20,26 @@ import TYPES from "@/di/types";
 export class AuthController {
   constructor(
     @inject(TYPES.AuthService) private _authService: IAuthService,
+    @inject(TYPES.TenantService) private _tenantService: ITenantService,
     @inject(TYPES.OtpService) private _otpService: IOtpService,
   ) {}
 
   registerTenant = async (req: Request, res: Response) => {
     const data: TenantRegisterDTO = req.body;
-    await this._authService.registerTenant(data);
+    await this._tenantService.registerTenant(data);
     res.status(STATUS_CODES.OK).json({ message: MESSAGES.OTP.SENT });
   };
 
   verifyTenant = async (req: Request, res: Response) => {
     const { tenantId } = req.body;
-    const result = await this._authService.verifyTenantByAdmin(tenantId);
+    const result = await this._tenantService.verifyTenantByAdmin(tenantId);
     res.status(STATUS_CODES.OK).json({ message: "Tenant active", result });
+  };
+
+  rejectTenant = async (req: Request, res: Response) => {
+    const { tenantId } = req.body;
+    await this._tenantService.rejectTenant(tenantId);
+    res.status(STATUS_CODES.OK).json({ message: "Tenant rejected" });
   };
 
   registerUser = async (req: Request, res: Response) => {
@@ -44,7 +52,7 @@ export class AuthController {
     const body = req.body as VerifyOtpDTO;
 
     if (body.type === "tenant") {
-      const result = await this._authService.verifyTenantRegisteration(body);
+      const result = await this._tenantService.verifyTenantRegisteration(body);
       return res.status(STATUS_CODES.OK).json({ message: MESSAGES.AUTH.TENANT_REGISTER_SUCCESS, result });
     }
 
@@ -162,12 +170,29 @@ export class AuthController {
   };
 
   getTenants = async (req: Request, res: Response) => {
-    const tenants = await this._authService.getTenants();
-    res.status(STATUS_CODES.OK).json({ result: tenants });
+    const page = Number.parseInt(req.query.page as string) || 1;
+    const limit = Number.parseInt(req.query.limit as string) || 10;
+    const search = req.query.search as string;
+
+    const result = await this._tenantService.getTenants({ page, limit, search });
+    res.status(STATUS_CODES.OK).json({ result });
   };
 
   getPendingTenants = async (req: Request, res: Response) => {
-    const tenants = await this._authService.getPendingTenants();
-    res.status(STATUS_CODES.OK).json({ result: tenants });
+    const page = Number.parseInt(req.query.page as string) || 1;
+    const limit = Number.parseInt(req.query.limit as string) || 10;
+    const search = req.query.search as string;
+
+    const result = await this._tenantService.getPendingTenants({ page, limit, search });
+    res.status(STATUS_CODES.OK).json({ result });
+  };
+
+  getRejectedTenants = async (req: Request, res: Response) => {
+    const page = Number.parseInt(req.query.page as string) || 1;
+    const limit = Number.parseInt(req.query.limit as string) || 10;
+    const search = req.query.search as string;
+
+    const result = await this._tenantService.getRejectedTenants({ page, limit, search });
+    res.status(STATUS_CODES.OK).json({ result });
   };
 }

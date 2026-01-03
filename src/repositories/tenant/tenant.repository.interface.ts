@@ -1,5 +1,16 @@
 import type { ITenant } from "@/models/tenant.model";
 
+export interface PaginationOptions {
+  page?: number;
+  limit?: number;
+  search?: string;
+}
+
+export interface PaginatedResult<T> {
+  data: T[];
+  total: number;
+}
+
 export interface ITenantRepository {
   getTenantByEmail: (email: string) => Promise<ITenant | null>;
 
@@ -9,7 +20,10 @@ export interface ITenantRepository {
 
   updateTenant: (id: string, data: Partial<ITenant>) => Promise<ITenant | null>;
 
-  getTenantsByStatus: (status: string) => Promise<ITenant[]>;
+  getTenantsByStatus: (status: string, options?: PaginationOptions) => Promise<PaginatedResult<ITenant>>;
 
-  getTenantsExcludingStatus: (status: string) => Promise<ITenant[]>;
+  getTenantsExcludingStatus: (
+    status: string | string[],
+    options?: PaginationOptions,
+  ) => Promise<PaginatedResult<ITenant>>;
 }
