@@ -9,6 +9,7 @@ import type { ITenantService } from "@/services/tenant/tenant.service.interface"
 
 import { initRedisClient } from "@/config/redis.config";
 import { AuthController } from "@/controllers/auth.controller";
+import { TenantController } from "@/controllers/tenant.controller";
 import { TenantRepository } from "@/repositories/tenant/tenant.repository";
 import { TokenRepository } from "@/repositories/token/token.repository";
 import { UserRepository } from "@/repositories/user/user.repository";
@@ -34,5 +35,6 @@ container.bind<ITokenRepository>(TYPES.TokenRepository).to(TokenRepository);
 container.bind<IOtpService>(TYPES.OtpService).to(OtpService);
 
 container.bind(TYPES.AuthController).to(AuthController);
+container.bind(TYPES.TenantController).to(TenantController);
 
 export default container;

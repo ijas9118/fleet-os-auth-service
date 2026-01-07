@@ -1,21 +1,25 @@
 import type { Request, Response } from "express";
 
-import { STATUS_CODES } from "@ahammedijas/fleet-os-shared";
 import { inject, injectable } from "inversify";
 
 import type { InternalUserCreateDTO } from "@/dto/internal-user-create.dto";
 import type { LoginDTO } from "@/dto/login.dto";
 import type { TenantAdminRegisterDTO } from "@/dto/tenant-admin.register.dto";
-import type { TenantRegisterDTO } from "@/dto/tenant.register.dto";
 import type { VerifyOtpDTO } from "@/dto/verify-otp.dto";
 import type { IAuthService } from "@/services/auth/auth.service.interface";
 import type { IOtpService } from "@/services/otp/otp.service.interface";
 import type { ITenantService } from "@/services/tenant/tenant.service.interface";
 
 import { MESSAGES } from "@/config/messages.constant";
-import env from "@/config/validate-env";
 import TYPES from "@/di/types";
+import { CookieHelper } from "@/utils/cookie.helper";
+import { RequestHelper } from "@/utils/request.helper";
+import { ResponseHelper } from "@/utils/response.helper";
 
+/**
+ * Controller for authentication operations
+ * Handles user registration, login, logout, token refresh, and invitations
+ */
 @injectable()
 export class AuthController {
   constructor(
@@ -24,175 +28,117 @@ export class AuthController {
     @inject(TYPES.OtpService) private _otpService: IOtpService,
   ) {}
 
-  registerTenant = async (req: Request, res: Response) => {
-    const data: TenantRegisterDTO = req.body;
-    await this._tenantService.registerTenant(data);
-    res.status(STATUS_CODES.OK).json({ message: MESSAGES.OTP.SENT });
-  };
-
-  verifyTenant = async (req: Request, res: Response) => {
-    const { tenantId } = req.body;
-    const result = await this._tenantService.verifyTenantByAdmin(tenantId);
-    res.status(STATUS_CODES.OK).json({ message: "Tenant active", result });
-  };
-
-  rejectTenant = async (req: Request, res: Response) => {
-    const { tenantId } = req.body;
-    await this._tenantService.rejectTenant(tenantId);
-    res.status(STATUS_CODES.OK).json({ message: "Tenant rejected" });
-  };
-
+  /**
+   * Register a new tenant admin user
+   */
   registerUser = async (req: Request, res: Response) => {
     const data: TenantAdminRegisterDTO = req.body;
     await this._authService.registerTenantAdmin(data);
-    res.status(STATUS_CODES.OK).json({ message: MESSAGES.OTP.SENT });
+    ResponseHelper.success(res, MESSAGES.OTP.SENT);
   };
 
+  /**
+   * Verify OTP and complete registration
+   * Handles both tenant and user verification
+   */
   verifyAndRegister = async (req: Request, res: Response) => {
     const body = req.body as VerifyOtpDTO;
 
     if (body.type === "tenant") {
       const result = await this._tenantService.verifyTenantRegisteration(body);
-      return res.status(STATUS_CODES.OK).json({ message: MESSAGES.AUTH.TENANT_REGISTER_SUCCESS, result });
+      return ResponseHelper.success(
+        res,
+        MESSAGES.AUTH.TENANT_REGISTER_SUCCESS,
+        result,
+      );
     }
 
     if (body.type === "user") {
       const result = await this._authService.verifyAndRegister(body);
-      return res.status(STATUS_CODES.OK).json({ message: MESSAGES.AUTH.USER_REGISTER_SUCCESS, result });
+      return ResponseHelper.success(
+        res,
+        MESSAGES.AUTH.USER_REGISTER_SUCCESS,
+        result,
+      );
     }
 
     throw new Error("Invalid OTP type");
   };
 
+  /**
+   * Resend OTP to user's email
+   */
   resendOTP = async (req: Request, res: Response) => {
     const { email } = req.body;
     await this._otpService.resendOTP(email);
-    res.status(STATUS_CODES.OK).json({ message: MESSAGES.OTP.SENT });
+    ResponseHelper.success(res, MESSAGES.OTP.SENT);
   };
 
+  /**
+   * User login with credentials
+   */
   login = async (req: Request, res: Response) => {
     const data: LoginDTO = req.body;
     const tokens = await this._authService.login(data);
 
-    res.cookie("refreshToken", tokens.refreshToken, {
-      httpOnly: true,
-      secure: env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-    res.status(STATUS_CODES.OK).json({
-      message: MESSAGES.AUTH.LOGIN_SUCCESS,
-      data: { accessToken: tokens.accessToken },
+    CookieHelper.setRefreshTokenCookie(res, tokens.refreshToken);
+    ResponseHelper.success(res, MESSAGES.AUTH.LOGIN_SUCCESS, {
+      accessToken: tokens.accessToken,
     });
   };
 
+  /**
+   * Invite a new internal user
+   */
   inviteUser = async (req: Request, res: Response) => {
     const data: InternalUserCreateDTO = req.body;
     const tenantId = req.user?.tenantId;
     await this._authService.createInternalUser(data, tenantId!);
-    res.status(200).json({ message: MESSAGES.AUTH.INVITE_REQUEST_SENT });
+    ResponseHelper.success(res, MESSAGES.AUTH.INVITE_REQUEST_SENT);
   };
 
+  /**
+   * Accept invitation and set password
+   */
   acceptInvite = async (req: Request, res: Response) => {
     const data: { token: string; password: string } = req.body;
     await this._authService.setPasswordFromInvite(data);
-    res.status(200).json({ message: MESSAGES.AUTH.USER_REGISTER_SUCCESS });
+    ResponseHelper.success(res, MESSAGES.AUTH.USER_REGISTER_SUCCESS);
   };
 
+  /**
+   * Refresh access token using refresh token
+   */
   refresh = async (req: Request, res: Response) => {
-    if (!req.cookies) {
-      res.status(STATUS_CODES.FORBIDDEN).json({
-        error: "No cookie",
-      });
-      return;
-    }
-    const refreshToken = req.cookies.refreshToken;
-    if (!refreshToken) {
-      res.status(STATUS_CODES.FORBIDDEN).json({
-        error: "No refresh token",
-      });
-      return;
-    }
-
+    const refreshToken = RequestHelper.extractRefreshToken(req);
     const tokens = await this._authService.refreshToken(refreshToken);
-    res.cookie("refreshToken", tokens.refreshToken, {
-      httpOnly: true,
-      secure: env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-    res.status(STATUS_CODES.OK).json({ message: MESSAGES.TOKEN.NEW_TOKENS, tokens });
+
+    CookieHelper.setRefreshTokenCookie(res, tokens.refreshToken);
+    ResponseHelper.success(res, MESSAGES.TOKEN.NEW_TOKENS, tokens);
   };
 
+  /**
+   * Logout from current session
+   */
   logout = async (req: Request, res: Response) => {
-    if (!req.cookies) {
-      res.status(STATUS_CODES.FORBIDDEN).json({
-        error: "No cookie",
-      });
-      return;
-    }
-    const refreshToken = req.cookies.refreshToken;
-    if (!refreshToken) {
-      res.status(STATUS_CODES.FORBIDDEN).json({
-        error: "No refresh token",
-      });
-      return;
-    }
-
+    const refreshToken = RequestHelper.extractRefreshToken(req);
     await this._authService.logout(refreshToken, req.user?.id as string);
 
-    res.clearCookie("refreshToken", {
-      httpOnly: true,
-      secure: env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-
-    res.status(STATUS_CODES.OK).json({
-      message: MESSAGES.AUTH.LOGOUT_SUCCESS || "Logged out successfully",
-    });
+    CookieHelper.clearRefreshTokenCookie(res);
+    ResponseHelper.success(
+      res,
+      MESSAGES.AUTH.LOGOUT_SUCCESS || "Logged out successfully",
+    );
   };
 
+  /**
+   * Logout from all sessions
+   */
   logoutAllSessions = async (req: Request, res: Response) => {
     const userId = req.user?.id as string;
-
     await this._authService.logoutAllSessions(userId);
 
-    res.clearCookie("refreshToken", {
-      httpOnly: true,
-      secure: env.NODE_ENV === "production",
-      sameSite: "strict",
-    });
-
-    res.status(STATUS_CODES.OK).json({
-      message: MESSAGES.AUTH.LOGOUT_ALL_SUCCESS,
-    });
-  };
-
-  getTenants = async (req: Request, res: Response) => {
-    const page = Number.parseInt(req.query.page as string) || 1;
-    const limit = Number.parseInt(req.query.limit as string) || 10;
-    const search = req.query.search as string;
-
-    const result = await this._tenantService.getTenants({ page, limit, search });
-    res.status(STATUS_CODES.OK).json({ result });
-  };
-
-  getPendingTenants = async (req: Request, res: Response) => {
-    const page = Number.parseInt(req.query.page as string) || 1;
-    const limit = Number.parseInt(req.query.limit as string) || 10;
-    const search = req.query.search as string;
-
-    const result = await this._tenantService.getPendingTenants({ page, limit, search });
-    res.status(STATUS_CODES.OK).json({ result });
-  };
-
-  getRejectedTenants = async (req: Request, res: Response) => {
-    const page = Number.parseInt(req.query.page as string) || 1;
-    const limit = Number.parseInt(req.query.limit as string) || 10;
-    const search = req.query.search as string;
-
-    const result = await this._tenantService.getRejectedTenants({ page, limit, search });
-    res.status(STATUS_CODES.OK).json({ result });
+    CookieHelper.clearRefreshTokenCookie(res);
+    ResponseHelper.success(res, MESSAGES.AUTH.LOGOUT_ALL_SUCCESS);
   };
 }
