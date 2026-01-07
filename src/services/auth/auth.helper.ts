@@ -27,6 +27,7 @@ export class AuthHelper {
       email: data.email,
       role: data.role,
       tenantId: data.tenantId,
+      tenantName: data.tenantName,
     };
   }
 

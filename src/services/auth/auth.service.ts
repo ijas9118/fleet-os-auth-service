@@ -74,11 +74,13 @@ export class AuthService implements IAuthService {
     if (!user.isActive)
       throw new HttpError("Your account has been suspended. Please contact support.", STATUS_CODES.FORBIDDEN);
 
+    let tenant;
+
     if (user.role !== UserRole.PLATFORM_ADMIN) {
       if (!user.tenantId)
         throw new HttpError("Tenant ID missing for non-admin user", STATUS_CODES.FORBIDDEN);
 
-      const tenant = await this._tenantRepo.getTenantByTenantId(user.tenantId);
+      tenant = await this._tenantRepo.getTenantByTenantId(user.tenantId);
       if (!tenant)
         throw new HttpError("Tenant not active", STATUS_CODES.FORBIDDEN);
     }
@@ -87,7 +89,13 @@ export class AuthService implements IAuthService {
     if (!isPasswordValid)
       throw new HttpError(MESSAGES.AUTH.INVALID_CREDENTIALS, STATUS_CODES.UNAUTHORIZED);
 
-    const payload = this._authHelper.createJwtPayload(user);
+    const payload = this._authHelper.createJwtPayload({ 
+      _id: user._id,
+      email: user.email,
+      role: user.role,
+      tenantId: user.tenantId,
+      tenantName: tenant?.name 
+    });
     const tokens = this._authHelper.generateTokens(payload);
 
     await this._storeRefreshToken(user._id, tokens.refreshToken);
@@ -138,7 +146,19 @@ export class AuthService implements IAuthService {
     storedToken.revoked = true;
     await storedToken.save();
 
-    const payload: JWTPayload = this._authHelper.createJwtPayload(user);
+    let tenantName: string | undefined;
+    if (user.tenantId && user.role !== UserRole.PLATFORM_ADMIN) {
+      const tenant = await this._tenantRepo.getTenantByTenantId(user.tenantId);
+      tenantName = tenant?.name;
+    }
+
+    const payload: JWTPayload = this._authHelper.createJwtPayload({ 
+      _id: user._id, 
+      email: user.email,
+      role: user.role,
+      tenantId: user.tenantId,
+      tenantName 
+    });
 
     const newTokens = this._authHelper.generateTokens(payload);
 

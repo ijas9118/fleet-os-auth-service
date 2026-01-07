@@ -7,6 +7,7 @@ export type JWTPayload = {
   email: string;
   role: UserRole;
   tenantId?: string;
+  tenantName?: string;
   exp?: number;
 };
 
