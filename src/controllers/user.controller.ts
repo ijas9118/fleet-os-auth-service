@@ -39,4 +39,16 @@ export class UserController {
     const result = await this._userService.getAllUsers(filters, page, limit);
     ResponseHelper.success(res, "Users retrieved successfully", result);
   };
+
+  blockUser = async (req: Request, res: Response) => {
+    const { userId } = req.body;
+    await this._userService.blockUser(userId);
+    ResponseHelper.success(res, "User blocked successfully");
+  };
+
+  unblockUser = async (req: Request, res: Response) => {
+    const { userId } = req.body;
+    await this._userService.unblockUser(userId);
+    ResponseHelper.success(res, "User unblocked successfully");
+  };
 }
