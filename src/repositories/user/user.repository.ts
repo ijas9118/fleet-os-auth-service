@@ -31,4 +31,51 @@ export class UserRepository implements IUserRepository {
   async getUsersByTenantAndRole(tenantId: string, role: string): Promise<IUser[]> {
     return User.find({ tenantId, role });
   }
+
+  async getAllUsers(
+    filters?: {
+      role?: string;
+      tenantId?: string;
+      isActive?: boolean;
+      search?: string;
+    },
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{ users: IUser[]; total: number }> {
+    const query: any = {
+      role: { $ne: "PLATFORM_ADMIN" },
+    };
+
+    if (filters?.role) {
+      query.role = filters.role;
+    }
+
+    if (filters?.tenantId) {
+      query.tenantId = filters.tenantId;
+    }
+
+    if (filters?.isActive !== undefined) {
+      query.isActive = filters.isActive;
+    }
+
+    if (filters?.search) {
+      query.$or = [
+        { name: { $regex: filters.search, $options: "i" } },
+        { email: { $regex: filters.search, $options: "i" } },
+      ];
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [users, total] = await Promise.all([
+      User.find(query)
+        .select("-password")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      User.countDocuments(query),
+    ]);
+
+    return { users, total };
+  }
 }

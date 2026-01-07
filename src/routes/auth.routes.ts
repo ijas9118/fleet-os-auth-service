@@ -18,7 +18,6 @@ const router = Router();
 
 const authController = container.get<AuthController>(TYPES.AuthController);
 
-// Public authentication routes
 router.post("/register-admin", validate(TenantAdminRegisterSchema), authController.registerUser);
 router.post("/verify-otp", validate(VerifyOtpSchema), authController.verifyAndRegister);
 router.post("/resend-otp", authController.resendOTP);
@@ -26,13 +25,11 @@ router.post("/login", validate(LoginSchema), authController.login);
 router.post("/refresh", authController.refresh);
 router.post("/accept-invite", validate(AcceptInviteSchema), authController.acceptInvite);
 
-// Protected routes
 router.use(requireAuth);
 
 router.post("/logout", authController.logout);
 router.post("/logout-all", authController.logoutAllSessions);
 
-// Invite user (Tenant Admin and Platform Admin)
 router.post(
   "/invite-user",
   requireRole(UserRole.TENANT_ADMIN, UserRole.PLATFORM_ADMIN),

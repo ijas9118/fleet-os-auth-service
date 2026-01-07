@@ -71,6 +71,9 @@ export class AuthService implements IAuthService {
     if (!user)
       throw new HttpError(MESSAGES.AUTH.INVALID_CREDENTIALS, STATUS_CODES.UNAUTHORIZED);
 
+    if (!user.isActive)
+      throw new HttpError("Your account has been suspended. Please contact support.", STATUS_CODES.FORBIDDEN);
+
     if (user.role !== UserRole.PLATFORM_ADMIN) {
       if (!user.tenantId)
         throw new HttpError("Tenant ID missing for non-admin user", STATUS_CODES.FORBIDDEN);
@@ -103,7 +106,6 @@ export class AuthService implements IAuthService {
 
     const token = uuidv4();
 
-    // Redis class
     await this._redisClient.set(`invite:${token}`, user._id.toString(), {
       expiration: { type: "EX", value: 24 * 60 * 60 },
     });
@@ -128,10 +130,15 @@ export class AuthService implements IAuthService {
     const decoded = this._authHelper.decodeToken(token);
 
     const storedToken = await this._validateStoredRefreshToken(token, decoded);
+
+    const user = await this._userRepo.getUserById(storedToken.user.toString());
+    if (!user || !user.isActive)
+      throw new HttpError("Your account has been suspended. Please contact support.", STATUS_CODES.FORBIDDEN);
+
     storedToken.revoked = true;
     await storedToken.save();
 
-    const payload: JWTPayload = this._authHelper.createJwtPayload(decoded);
+    const payload: JWTPayload = this._authHelper.createJwtPayload(user);
 
     const newTokens = this._authHelper.generateTokens(payload);
 

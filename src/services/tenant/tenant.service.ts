@@ -7,6 +7,7 @@ import type { TenantResponseDTO } from "@/dto/tenant.response.dto";
 import type { VerifyOtpDTO } from "@/dto/verify-otp.dto";
 import type { ITenantRepository, PaginationOptions } from "@/repositories/tenant/tenant.repository.interface";
 import type { IUserRepository } from "@/repositories/user/user.repository.interface";
+import type { PaginatedResponse } from "@/types";
 
 import { MESSAGES } from "@/config/messages.constant";
 import env from "@/config/validate-env";
@@ -15,7 +16,7 @@ import { TenantMapper } from "@/mappers/tenant.mapper";
 import { HttpError } from "@/utils/http-error-class";
 
 import type { IOtpService } from "../otp/otp.service.interface";
-import type { ITenantService, PaginatedResponse } from "./tenant.service.interface";
+import type { ITenantService } from "./tenant.service.interface";
 
 @injectable()
 export class TenantService implements ITenantService {
