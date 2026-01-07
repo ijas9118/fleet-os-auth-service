@@ -103,7 +103,6 @@ export class AuthService implements IAuthService {
 
     const token = uuidv4();
 
-    // Redis class
     await this._redisClient.set(`invite:${token}`, user._id.toString(), {
       expiration: { type: "EX", value: 24 * 60 * 60 },
     });

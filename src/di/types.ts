@@ -1,7 +1,9 @@
 const TYPES = {
   AuthController: Symbol.for("AuthController"),
   TenantController: Symbol.for("TenantController"),
+  UserController: Symbol.for("UserController"),
   AuthService: Symbol.for("AuthService"),
+  UserService: Symbol.for("UserService"),
   UserRepository: Symbol.for("UserRepository"),
   TenantRepository: Symbol.for("TenantRepository"),
   TokenRepository: Symbol.for("TokenRepository"),
