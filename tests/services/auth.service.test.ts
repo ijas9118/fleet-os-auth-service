@@ -17,6 +17,7 @@ describe("authService", () => {
   beforeEach(() => {
     mockUserRepo = {
       getUserByEmail: jest.fn(),
+      getUserById: jest.fn(),
       createUser: jest.fn(),
       updateUser: jest.fn(),
     };
@@ -68,6 +69,7 @@ describe("authService", () => {
         password: "hashedPassword",
         role: "PLATFORM_ADMIN",
         tenantId: "tenantId",
+        isActive: true,
       };
       mockUserRepo.getUserByEmail.mockResolvedValue(mockUser);
       mockAuthHelper.validatePassword.mockResolvedValue(true);
@@ -105,6 +107,7 @@ describe("authService", () => {
         email: "test@example.com",
         password: "hashedPassword",
         role: "PLATFORM_ADMIN",
+        isActive: true,
       };
       mockUserRepo.getUserByEmail.mockResolvedValue(mockUser);
       mockAuthHelper.validatePassword.mockResolvedValue(false);
@@ -120,6 +123,7 @@ describe("authService", () => {
         password: "hashedPassword",
         role: "DRIVER",
         tenantId: null,
+        isActive: true,
       };
       mockUserRepo.getUserByEmail.mockResolvedValue(mockUser);
 
@@ -134,6 +138,7 @@ describe("authService", () => {
         password: "hashedPassword",
         role: "DRIVER",
         tenantId: "tid",
+        isActive: true,
       };
       mockUserRepo.getUserByEmail.mockResolvedValue(mockUser);
       mockTenantRepo.getTenantByTenantId.mockResolvedValue(null);
@@ -150,6 +155,7 @@ describe("authService", () => {
         password: "hashedPassword",
         role: "DRIVER",
         tenantId: "tid",
+        isActive: true,
       };
       mockUserRepo.getUserByEmail.mockResolvedValue(mockUser);
       mockTenantRepo.getTenantByTenantId.mockResolvedValue({ status: "ACTIVE" });
@@ -169,9 +175,11 @@ describe("authService", () => {
     it("should refresh tokens successfully", async () => {
       const mockDecoded = { sub: "userId", exp: 1234567890 };
       const mockStoredToken = { revoked: false, save: jest.fn(), user: "userId" };
+      const mockUser = { _id: "userId", isActive: true, role: "PLATFORM_ADMIN" };
 
       mockAuthHelper.decodeToken.mockReturnValue(mockDecoded);
       mockTokenRepo.findByToken.mockResolvedValue(mockStoredToken);
+      mockUserRepo.getUserById.mockResolvedValue(mockUser);
       mockAuthHelper.createJwtPayload.mockReturnValue({ sub: "userId" });
       mockAuthHelper.generateTokens.mockReturnValue({
         accessToken: "newAccess",

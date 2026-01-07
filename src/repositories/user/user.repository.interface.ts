@@ -44,4 +44,23 @@ export interface IUserRepository {
    * @returns A list of users.
    */
   getUsersByTenantAndRole: (tenantId: string, role: string) => Promise<IUser[]>;
+
+  /**
+   * Retrieves all users with optional filters and pagination.
+   *
+   * @param filters - Optional filters (role, tenantId, isActive, search).
+   * @param page - Page number for pagination.
+   * @param limit - Number of items per page.
+   * @returns Object containing users array and total count.
+   */
+  getAllUsers: (
+    filters?: {
+      role?: string;
+      tenantId?: string;
+      isActive?: boolean;
+      search?: string;
+    },
+    page?: number,
+    limit?: number,
+  ) => Promise<{ users: IUser[]; total: number }>;
 };

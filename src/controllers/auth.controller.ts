@@ -16,10 +16,6 @@ import { CookieHelper } from "@/utils/cookie.helper";
 import { RequestHelper } from "@/utils/request.helper";
 import { ResponseHelper } from "@/utils/response.helper";
 
-/**
- * Controller for authentication operations
- * Handles user registration, login, logout, token refresh, and invitations
- */
 @injectable()
 export class AuthController {
   constructor(
@@ -28,19 +24,12 @@ export class AuthController {
     @inject(TYPES.OtpService) private _otpService: IOtpService,
   ) {}
 
-  /**
-   * Register a new tenant admin user
-   */
   registerUser = async (req: Request, res: Response) => {
     const data: TenantAdminRegisterDTO = req.body;
     await this._authService.registerTenantAdmin(data);
     ResponseHelper.success(res, MESSAGES.OTP.SENT);
   };
 
-  /**
-   * Verify OTP and complete registration
-   * Handles both tenant and user verification
-   */
   verifyAndRegister = async (req: Request, res: Response) => {
     const body = req.body as VerifyOtpDTO;
 
@@ -65,18 +54,12 @@ export class AuthController {
     throw new Error("Invalid OTP type");
   };
 
-  /**
-   * Resend OTP to user's email
-   */
   resendOTP = async (req: Request, res: Response) => {
     const { email } = req.body;
     await this._otpService.resendOTP(email);
     ResponseHelper.success(res, MESSAGES.OTP.SENT);
   };
 
-  /**
-   * User login with credentials
-   */
   login = async (req: Request, res: Response) => {
     const data: LoginDTO = req.body;
     const tokens = await this._authService.login(data);
@@ -87,9 +70,6 @@ export class AuthController {
     });
   };
 
-  /**
-   * Invite a new internal user
-   */
   inviteUser = async (req: Request, res: Response) => {
     const data: InternalUserCreateDTO = req.body;
     const tenantId = req.user?.tenantId;
@@ -97,18 +77,12 @@ export class AuthController {
     ResponseHelper.success(res, MESSAGES.AUTH.INVITE_REQUEST_SENT);
   };
 
-  /**
-   * Accept invitation and set password
-   */
   acceptInvite = async (req: Request, res: Response) => {
     const data: { token: string; password: string } = req.body;
     await this._authService.setPasswordFromInvite(data);
     ResponseHelper.success(res, MESSAGES.AUTH.USER_REGISTER_SUCCESS);
   };
 
-  /**
-   * Refresh access token using refresh token
-   */
   refresh = async (req: Request, res: Response) => {
     const refreshToken = RequestHelper.extractRefreshToken(req);
     const tokens = await this._authService.refreshToken(refreshToken);
@@ -117,9 +91,6 @@ export class AuthController {
     ResponseHelper.success(res, MESSAGES.TOKEN.NEW_TOKENS, tokens);
   };
 
-  /**
-   * Logout from current session
-   */
   logout = async (req: Request, res: Response) => {
     const refreshToken = RequestHelper.extractRefreshToken(req);
     await this._authService.logout(refreshToken, req.user?.id as string);
@@ -131,9 +102,6 @@ export class AuthController {
     );
   };
 
-  /**
-   * Logout from all sessions
-   */
   logoutAllSessions = async (req: Request, res: Response) => {
     const userId = req.user?.id as string;
     await this._authService.logoutAllSessions(userId);

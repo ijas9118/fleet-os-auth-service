@@ -2,16 +2,7 @@ import type { TenantRegisterDTO } from "@/dto/tenant.register.dto";
 import type { TenantResponseDTO } from "@/dto/tenant.response.dto";
 import type { VerifyOtpDTO } from "@/dto/verify-otp.dto";
 import type { PaginationOptions } from "@/repositories/tenant/tenant.repository.interface";
-
-export interface PaginatedResponse<T> {
-  data: T[];
-  meta: {
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  };
-}
+import type { PaginatedResponse } from "@/types";
 
 export interface ITenantService {
   getTenants: (options?: PaginationOptions) => Promise<PaginatedResponse<TenantResponseDTO>>;
