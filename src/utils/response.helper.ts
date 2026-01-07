@@ -20,7 +20,8 @@ export class ResponseHelper {
       // Use 'result' key if data looks like a paginated query result, otherwise use 'data'
       if (typeof data === "object" && data !== null && ("data" in data || "meta" in data)) {
         response.result = data;
-      } else {
+      }
+      else {
         response.data = data;
       }
     }
