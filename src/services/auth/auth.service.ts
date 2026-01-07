@@ -89,12 +89,12 @@ export class AuthService implements IAuthService {
     if (!isPasswordValid)
       throw new HttpError(MESSAGES.AUTH.INVALID_CREDENTIALS, STATUS_CODES.UNAUTHORIZED);
 
-    const payload = this._authHelper.createJwtPayload({ 
+    const payload = this._authHelper.createJwtPayload({
       _id: user._id,
       email: user.email,
       role: user.role,
       tenantId: user.tenantId,
-      tenantName: tenant?.name 
+      tenantName: tenant?.name,
     });
     const tokens = this._authHelper.generateTokens(payload);
 
@@ -152,12 +152,12 @@ export class AuthService implements IAuthService {
       tenantName = tenant?.name;
     }
 
-    const payload: JWTPayload = this._authHelper.createJwtPayload({ 
-      _id: user._id, 
+    const payload: JWTPayload = this._authHelper.createJwtPayload({
+      _id: user._id,
       email: user.email,
       role: user.role,
       tenantId: user.tenantId,
-      tenantName 
+      tenantName,
     });
 
     const newTokens = this._authHelper.generateTokens(payload);
