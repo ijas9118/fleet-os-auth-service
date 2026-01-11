@@ -13,4 +13,3 @@ router.use("/users", userRoutes);
 router.use("/operations-managers", operationsManagerRoutes);
 
 export default router;
-

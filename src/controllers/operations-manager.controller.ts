@@ -41,7 +41,7 @@ export class OperationsManagerController {
       page,
       limit,
     );
-    
+
     ResponseHelper.success(res, "Operations managers retrieved successfully", result);
   };
 

@@ -6,7 +6,6 @@ import type { OperationsManagerController } from "@/controllers/operations-manag
 import container from "@/di/container";
 import TYPES from "@/di/types";
 import { ChangeStatusSchema } from "@/dto/change-status.dto";
-import { OperationsManagerListQuerySchema } from "@/dto/operations-manager-list.dto";
 import { requireAuth } from "@/middlewares/auth.middleware";
 import { requireRole } from "@/middlewares/role.middleware";
 import { validate } from "@/middlewares/validate.middleware";
@@ -35,5 +34,3 @@ router.post(
 );
 
 export default router;
-
-

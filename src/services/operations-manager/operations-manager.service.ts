@@ -6,6 +6,7 @@ import type { ITokenRepository } from "@/repositories/token/token.repository.int
 import type { IUserRepository } from "@/repositories/user/user.repository.interface";
 import type { PaginatedResponse } from "@/types";
 
+import logger from "@/config/logger";
 import TYPES from "@/di/types";
 import { HttpError } from "@/utils/http-error-class";
 
@@ -37,7 +38,8 @@ export class OperationsManagerService implements IOperationsManagerService {
 
     if (filters?.status === "active") {
       queryFilters.isActive = true;
-    } else if (filters?.status === "blocked") {
+    }
+    else if (filters?.status === "blocked") {
       queryFilters.isActive = false;
     }
 
@@ -71,7 +73,7 @@ export class OperationsManagerService implements IOperationsManagerService {
 
   async blockOperationsManager(userId: string, reason?: string): Promise<void> {
     const user = await this._userRepository.getUserById(userId);
-    
+
     if (!user) {
       throw new HttpError("User not found", STATUS_CODES.NOT_FOUND);
     }
@@ -98,13 +100,13 @@ export class OperationsManagerService implements IOperationsManagerService {
     // TODO: Log the reason for blocking if provided (for audit trail)
     if (reason) {
       // Future: implement audit logging
-      console.log(`Operations manager ${userId} blocked. Reason: ${reason}`);
+      logger.debug(`Operations manager ${userId} blocked. Reason: ${reason}`);
     }
   }
 
   async unblockOperationsManager(userId: string, reason?: string): Promise<void> {
     const user = await this._userRepository.getUserById(userId);
-    
+
     if (!user) {
       throw new HttpError("User not found", STATUS_CODES.NOT_FOUND);
     }
@@ -125,10 +127,9 @@ export class OperationsManagerService implements IOperationsManagerService {
 
     await this._userRepository.updateUser(userId, { isActive: true });
 
-    // TODO: Log the reason for unblocking if provided (for audit trail)
     if (reason) {
       // Future: implement audit logging
-      console.log(`Operations manager ${userId} unblocked. Reason: ${reason}`);
+      logger.debug(`Operations manager ${userId} unblocked. Reason: ${reason}`);
     }
   }
 }
