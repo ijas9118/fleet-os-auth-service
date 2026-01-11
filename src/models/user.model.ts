@@ -10,6 +10,9 @@ export interface IUser extends Document<string> {
   role: UserRole;
   tenantId?: string;
   isActive: boolean;
+  invitedBy?: string;
+  invitedAt?: Date;
+  invitationAcceptedAt?: Date;
   lastLoginAt?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -40,7 +43,6 @@ const userSchema = new Schema<IUser>(
         "PLATFORM_ADMIN",
         "TENANT_ADMIN",
         "OPERATIONS_MANAGER",
-        "WAREHOUSE_MANAGER",
         "DRIVER",
       ],
       required: true,
@@ -48,12 +50,21 @@ const userSchema = new Schema<IUser>(
     tenantId: {
       type: String,
     },
+    invitedBy: {
+      type: String,
+    },
+    invitedAt: {
+      type: Date,
+    },
+    invitationAcceptedAt: {
+      type: Date,
+    },
     lastLoginAt: {
       type: Date,
     },
     isActive: {
       type: Boolean,
-      default: true,
+      default: false,
     },
   },
   {

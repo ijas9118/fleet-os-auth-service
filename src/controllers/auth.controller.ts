@@ -73,7 +73,8 @@ export class AuthController {
   inviteUser = async (req: Request, res: Response) => {
     const data: InternalUserCreateDTO = req.body;
     const tenantId = req.user?.tenantId;
-    await this._authService.createInternalUser(data, tenantId!);
+    const invitedBy = req.user?.id;
+    await this._authService.createInternalUser(data, tenantId!, invitedBy!);
     ResponseHelper.success(res, MESSAGES.AUTH.INVITE_REQUEST_SENT);
   };
 

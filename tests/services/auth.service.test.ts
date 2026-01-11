@@ -267,7 +267,7 @@ describe("authService", () => {
       mockUserRepo.getUserByEmail.mockResolvedValue(null);
       mockUserRepo.createUser.mockResolvedValue({ _id: "uid" });
 
-      await authService.createInternalUser({ email: "new@test.com" } as any, "tid");
+      await authService.createInternalUser({ email: "new@test.com" } as any, "tid", "inviterId");
 
       expect(mockUserRepo.createUser).toHaveBeenCalled();
       expect(mockRedisClient.set).toHaveBeenCalled();
@@ -281,7 +281,10 @@ describe("authService", () => {
 
       await authService.setPasswordFromInvite({ token: "tok", password: "pass" } as any);
 
-      expect(mockUserRepo.updateUser).toHaveBeenCalledWith("uid", { password: "hashed" });
+      expect(mockUserRepo.updateUser).toHaveBeenCalledWith("uid", expect.objectContaining({
+        password: "hashed",
+        isActive: true,
+      }));
       expect(mockRedisClient.del).toHaveBeenCalled();
     });
 

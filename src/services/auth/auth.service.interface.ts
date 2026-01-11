@@ -18,7 +18,7 @@ export type IAuthService = {
 
   logoutAllSessions: (userId: string) => Promise<void>;
 
-  createInternalUser: (data: InternalUserCreateDTO, tenantId: string) => Promise<void>;
+  createInternalUser: (data: InternalUserCreateDTO, tenantId: string, invitedBy: string) => Promise<void>;
 
   setPasswordFromInvite: (data: { token: string; password: string }) => Promise<void>;
 

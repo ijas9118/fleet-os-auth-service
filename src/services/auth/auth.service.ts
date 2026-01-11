@@ -15,7 +15,9 @@ import type { ITokenRepository } from "@/repositories/token/token.repository.int
 import type { IUserRepository } from "@/repositories/user/user.repository.interface";
 import type { JWTPayload } from "@/types";
 
+import logger from "@/config/logger";
 import { MESSAGES } from "@/config/messages.constant";
+import env from "@/config/validate-env";
 import TYPES from "@/di/types";
 import { HttpError } from "@/utils/http-error-class";
 
@@ -57,7 +59,7 @@ export class AuthService implements IAuthService {
     if (savedData.type !== "user")
       throw new HttpError("Invalid OTP type", 400);
 
-    const user = await this._userRepo.createUser(savedData.data);
+    const user = await this._userRepo.createUser({ ...savedData.data, isActive: true });
 
     return {
       id: user._id.toString(),
@@ -73,6 +75,9 @@ export class AuthService implements IAuthService {
 
     if (!user.isActive)
       throw new HttpError("Your account has been suspended. Please contact support.", STATUS_CODES.FORBIDDEN);
+
+    if (!user.password)
+      throw new HttpError("Please accept your invitation first to set your password.", STATUS_CODES.FORBIDDEN);
 
     let tenant;
 
@@ -103,13 +108,16 @@ export class AuthService implements IAuthService {
     return tokens;
   }
 
-  async createInternalUser(data: InternalUserCreateDTO, tenantId: string): Promise<void> {
+  async createInternalUser(data: InternalUserCreateDTO, tenantId: string, invitedBy: string): Promise<void> {
     await this._isUserAlreadyExist(data.email);
 
     const user = await this._userRepo.createUser({
       ...data,
       password: null,
       tenantId,
+      isActive: false,
+      invitedBy,
+      invitedAt: new Date(),
     });
 
     const token = uuidv4();
@@ -117,6 +125,15 @@ export class AuthService implements IAuthService {
     await this._redisClient.set(`invite:${token}`, user._id.toString(), {
       expiration: { type: "EX", value: 24 * 60 * 60 },
     });
+
+    // TODO: Replace with email service once implemented
+    const invitationLink = `${env.CLIENT_URL || "http://localhost:3000"}/auth/accept-invite?token=${token}`;
+    logger.debug("\n=== INVITATION LINK ===");
+    logger.debug(`User: ${user.name} (${user.email})`);
+    logger.debug(`Role: ${user.role}`);
+    logger.debug(`Link: ${invitationLink}`);
+    logger.debug(`Expires in: 24 hours`);
+    logger.debug("========================\n");
   }
 
   async setPasswordFromInvite(data: AcceptInviteDTO): Promise<void> {
@@ -129,7 +146,11 @@ export class AuthService implements IAuthService {
 
     const hashed = await this._authHelper.hashPassword(data.password);
 
-    await this._userRepo.updateUser(userId, { password: hashed });
+    await this._userRepo.updateUser(userId, {
+      password: hashed,
+      isActive: true,
+      invitationAcceptedAt: new Date(),
+    });
 
     await this._redisClient.del(key);
   }

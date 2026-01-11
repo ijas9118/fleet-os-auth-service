@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@ahammedijas/fleet-os-shared':
-        specifier: ^1.2.1
-        version: 1.2.1
+        specifier: ^1.2.3
+        version: 1.2.3
       argon2:
         specifier: ^0.44.0
         version: 0.44.0
@@ -111,8 +111,8 @@ importers:
 
 packages:
 
-  '@ahammedijas/fleet-os-shared@1.2.1':
-    resolution: {integrity: sha512-o58IVyntoouxhORstxV+BJjL9dlMM7EGovaMIDKQ/70kbbrhFBViuLd2V9/B08EkefsJsD61G+yG/RkkiGOkhg==}
+  '@ahammedijas/fleet-os-shared@1.2.3':
+    resolution: {integrity: sha512-2lCPHCQWHTyg0Y7HN14oCHF0BezzEKbx37LlyRo5R4WrtoLQysHtzra6Wl5owwv4QYAomSWRTWVhbfd4HABphg==}
 
   '@antfu/eslint-config@6.7.3':
     resolution: {integrity: sha512-0tYYzY59uLnxWgbP9xpuxpvodTcWDacj439kTAJZB3sn7O0BnPfVxTnRvleGYaKCEALBZkzdC/wCho9FD7ICLw==}
@@ -3518,7 +3518,7 @@ packages:
 
 snapshots:
 
-  '@ahammedijas/fleet-os-shared@1.2.1': {}
+  '@ahammedijas/fleet-os-shared@1.2.3': {}
 
   '@antfu/eslint-config@6.7.3(@vue/compiler-sfc@3.5.22)(eslint-plugin-format@1.2.0(eslint@9.39.2))(eslint@9.39.2)(typescript@5.9.3)':
     dependencies:
