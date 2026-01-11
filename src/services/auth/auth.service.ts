@@ -103,6 +103,9 @@ export class AuthService implements IAuthService {
     });
     const tokens = this._authHelper.generateTokens(payload);
 
+    // Update last login timestamp
+    await this._userRepo.updateUser(user._id.toString(), { lastLoginAt: new Date() });
+
     await this._storeRefreshToken(user._id, tokens.refreshToken);
 
     return tokens;
@@ -127,7 +130,7 @@ export class AuthService implements IAuthService {
     });
 
     // TODO: Replace with email service once implemented
-    const invitationLink = `${env.CLIENT_URL || "http://localhost:3000"}/auth/accept-invite?token=${token}`;
+    const invitationLink = `${env.CLIENT_URL || "http://localhost:5173"}/auth/accept-invite?token=${token}`;
     logger.debug("\n=== INVITATION LINK ===");
     logger.debug(`User: ${user.name} (${user.email})`);
     logger.debug(`Role: ${user.role}`);
