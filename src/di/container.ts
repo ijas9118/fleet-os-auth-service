@@ -5,11 +5,13 @@ import type { ITokenRepository } from "@/repositories/token/token.repository.int
 import type { IUserRepository } from "@/repositories/user/user.repository.interface";
 import type { IAuthService } from "@/services/auth/auth.service.interface";
 import type { IDriverService } from "@/services/driver/driver.service.interface";
+import type { IEventPublisherService } from "@/services/event-publisher/event-publisher.service.interface";
 import type { IOperationsManagerService } from "@/services/operations-manager/operations-manager.service.interface";
 import type { IOtpService } from "@/services/otp/otp.service.interface";
 import type { ITenantService } from "@/services/tenant/tenant.service.interface";
 import type { IUserService } from "@/services/user/user.service.interface";
 
+import { producer } from "@/config/kafka";
 import { initRedisClient } from "@/config/redis.config";
 import { AuthController } from "@/controllers/auth.controller";
 import { DriverController } from "@/controllers/driver.controller";
@@ -22,6 +24,7 @@ import { UserRepository } from "@/repositories/user/user.repository";
 import { AuthHelper } from "@/services/auth/auth.helper";
 import { AuthService } from "@/services/auth/auth.service";
 import { DriverService } from "@/services/driver/driver.service";
+import { EventPublisherService } from "@/services/event-publisher/event-publisher.service";
 import { OperationsManagerService } from "@/services/operations-manager/operations-manager.service";
 import { OtpService } from "@/services/otp/otp.service";
 import { TenantService } from "@/services/tenant/tenant.service";
@@ -34,6 +37,10 @@ const container = new Container();
 const redisClient = initRedisClient();
 
 container.bind(TYPES.RedisClient).toConstantValue(redisClient);
+
+// Kafka bindings
+container.bind(TYPES.KafkaProducer).toConstantValue(producer);
+container.bind<IEventPublisherService>(TYPES.EventPublisherService).to(EventPublisherService);
 
 container.bind<IAuthService>(TYPES.AuthService).to(AuthService);
 container.bind<ITenantService>(TYPES.TenantService).to(TenantService);

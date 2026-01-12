@@ -15,6 +15,8 @@ const TYPES = {
   RedisClient: Symbol.for("RedisClient"),
   AuthHelper: Symbol.for("AuthHelper"),
   TenantService: Symbol.for("TenantService"),
+  KafkaProducer: Symbol.for("KafkaProducer"),
+  EventPublisherService: Symbol.for("EventPublisherService"),
 };
 
 export default TYPES;

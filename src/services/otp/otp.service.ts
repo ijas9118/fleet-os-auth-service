@@ -13,6 +13,7 @@ import type { StoredOtp } from "@/types";
 import { MESSAGES } from "@/config/messages.constant";
 import TYPES from "@/di/types";
 import { HttpError } from "@/utils/http-error-class";
+import type { IEventPublisherService } from "../event-publisher/event-publisher.service.interface";
 
 import type { IOtpService } from "./otp.service.interface";
 
@@ -21,7 +22,10 @@ const OTP_KEY_PREFIX = "otp:";
 
 @injectable()
 export class OtpService implements IOtpService {
-  constructor(@inject(TYPES.RedisClient) private _redisClient: RedisClientType) {}
+  constructor(
+    @inject(TYPES.RedisClient) private _redisClient: RedisClientType,
+    @inject(TYPES.EventPublisherService) private _eventPublisher: IEventPublisherService,
+  ) {}
 
   /* -------------------------------------------------------------------------- */
   /*                               Helper Methods                               */
@@ -62,6 +66,19 @@ export class OtpService implements IOtpService {
     };
 
     await this._saveOtp(data.email, stored);
+
+    // Publish OTP event for notification service
+    await this._eventPublisher.publish(
+      "fleet-os.auth.otp.generated",
+      "otp.generated",
+      {
+        email: data.email,
+        otp,
+        type: "user" as const,
+        expiresAt: new Date(Date.now() + OTP_TTL_SECONDS * 1000).toISOString(),
+        purpose: "registration" as const,
+      },
+    );
   }
 
   async generateOTPForTenant(data: TenantRegisterDTO): Promise<void> {
@@ -74,6 +91,19 @@ export class OtpService implements IOtpService {
     };
 
     await this._saveOtp(data.contactEmail, stored);
+
+    // Publish OTP event for notification service
+    await this._eventPublisher.publish(
+      "fleet-os.auth.otp.generated",
+      "otp.generated",
+      {
+        email: data.contactEmail,
+        otp,
+        type: "tenant" as const,
+        expiresAt: new Date(Date.now() + OTP_TTL_SECONDS * 1000).toISOString(),
+        purpose: "registration" as const,
+      },
+    );
   }
 
   async resendOTP(email: string): Promise<void> {

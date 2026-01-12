@@ -6,13 +6,20 @@ import { OtpService } from "@/services/otp/otp.service";
 describe("otpService", () => {
   let otpService: OtpService;
   let mockRedisClient: any;
-  beforeEach(() => {
+  let mockEventPublisher: any;
+
+  beforeAll(() => {
     mockRedisClient = {
       set: jest.fn(),
       get: jest.fn(),
       del: jest.fn(),
     };
-    otpService = new OtpService(mockRedisClient);
+
+    mockEventPublisher = {
+      publish: jest.fn().mockResolvedValue(undefined),
+    };
+
+    otpService = new OtpService(mockRedisClient, mockEventPublisher);
   });
   describe("generateOTP", () => {
     it("should generate and save OTP for user", async () => {

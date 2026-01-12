@@ -17,6 +17,7 @@ const EnvSchema = z.object({
   ACCESS_TOKEN_EXP: z.string().default("15m"),
   REFRESH_TOKEN_EXP: z.string().default("7d"),
   CLIENT_URL: z.url(),
+  KAFKA_BROKER: z.string().default("kafka.infrastructure.svc.cluster.local:9092"),
 });
 
 export type env = z.infer<typeof EnvSchema>;
