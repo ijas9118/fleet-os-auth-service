@@ -13,7 +13,7 @@ const PORT = env.PORT || 4000;
 (async () => {
   try {
     await connectDB();
-    
+
     // Start Kafka connection in background with retry loop
     const connectKafka = async () => {
       let retries = 0;
@@ -22,14 +22,15 @@ const PORT = env.PORT || 4000;
           await connectProducer();
           logger.info("✅ Kafka producer connected");
           break;
-        } catch (error) {
+        }
+        catch (error) {
           retries++;
           logger.warn(`Failed to connect to Kafka (attempt ${retries}), retrying in 5s...`, error);
           await new Promise(resolve => setTimeout(resolve, 5000));
         }
       }
     };
-    
+
     // Don't await - let it run in background
     connectKafka();
 
