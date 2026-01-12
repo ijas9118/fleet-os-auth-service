@@ -102,6 +102,7 @@ export class AuthService implements IAuthService {
       role: user.role,
       tenantId: user.tenantId,
       tenantName: tenant?.name,
+      isOnboardingComplete: user.isOnboardingComplete,
     });
     const tokens = this._authHelper.generateTokens(payload);
 
@@ -215,6 +216,7 @@ export class AuthService implements IAuthService {
       role: user.role,
       tenantId: user.tenantId,
       tenantName,
+      isOnboardingComplete: user.isOnboardingComplete,
     });
 
     const newTokens = this._authHelper.generateTokens(payload);
