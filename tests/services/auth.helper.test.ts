@@ -48,6 +48,8 @@ describe("authHelper", () => {
         _id: "123",
         role: "PLATFORM_ADMIN",
         tenantId: "tenant123",
+        email: "test@example.com",
+        tenantName: "tenant123",
       } as unknown as IUser;
 
       const payload = authHelper.createJwtPayload(user);
@@ -56,6 +58,9 @@ describe("authHelper", () => {
         sub: "123",
         role: "PLATFORM_ADMIN",
         tenantId: "tenant123",
+        email: "test@example.com",
+        tenantName: "tenant123",
+        isOnboardingComplete: false,
       });
     });
   });

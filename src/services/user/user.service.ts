@@ -79,4 +79,24 @@ export class UserService implements IUserService {
 
     await this._userRepository.updateUser(userId, { isActive: true });
   }
+
+  async markUserOnboardingComplete(userId: string): Promise<void> {
+    const user = await this._userRepository.getUserById(userId);
+    if (!user) {
+      throw new HttpError("User not found", STATUS_CODES.NOT_FOUND);
+    }
+
+    if (user.isOnboardingComplete) {
+      // Idempotent: if already complete, just return
+      return;
+    }
+
+    await this._userRepository.updateUser(userId, {
+      isOnboardingComplete: true,
+      onboardingCompletedAt: new Date(),
+    });
+
+    // We can also log this action
+    // logger.info(`User ${userId} onboarding marked as complete`);
+  }
 }

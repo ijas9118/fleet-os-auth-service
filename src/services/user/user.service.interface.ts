@@ -16,4 +16,6 @@ export interface IUserService {
   blockUser: (userId: string) => Promise<void>;
 
   unblockUser: (userId: string) => Promise<void>;
+
+  markUserOnboardingComplete: (userId: string) => Promise<void>;
 }

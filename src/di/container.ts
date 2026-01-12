@@ -15,6 +15,7 @@ import { producer } from "@/config/kafka";
 import { initRedisClient } from "@/config/redis.config";
 import { AuthController } from "@/controllers/auth.controller";
 import { DriverController } from "@/controllers/driver.controller";
+import { InternalController } from "@/controllers/internal.controller";
 import { OperationsManagerController } from "@/controllers/operations-manager.controller";
 import { TenantController } from "@/controllers/tenant.controller";
 import { UserController } from "@/controllers/user.controller";
@@ -58,5 +59,6 @@ container.bind(TYPES.TenantController).to(TenantController);
 container.bind(TYPES.UserController).to(UserController);
 container.bind(TYPES.OperationsManagerController).to(OperationsManagerController);
 container.bind(TYPES.DriverController).to(DriverController);
+container.bind(TYPES.InternalController).to(InternalController);
 
 export default container;

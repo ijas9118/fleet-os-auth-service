@@ -151,18 +151,18 @@ export class AuthService implements IAuthService {
 
     const hashed = await this._authHelper.hashPassword(data.password);
 
+    const user = await this._userRepo.getUserById(userId);
+    if (!user)
+      throw new HttpError("User not found", 500);
+
     await this._userRepo.updateUser(userId, {
       password: hashed,
       isActive: true,
       invitationAcceptedAt: new Date(),
+      isOnboardingComplete: user.role === UserRole.DRIVER ? false : undefined,
     });
 
     await this._redisClient.del(key);
-
-    // Get updated user to return and publish event
-    const user = await this._userRepo.getUserById(userId);
-    if (!user)
-      throw new HttpError("User not found after update", 500);
 
     // Publish event if user is a driver
     if (user.role === UserRole.DRIVER && user.tenantId) {

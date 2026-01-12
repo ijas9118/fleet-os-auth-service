@@ -14,6 +14,7 @@ const EnvSchema = z.object({
   REDIS_URL: z.string(),
   PRIVATE_KEY: z.string(),
   PUBLIC_KEY: z.string(),
+  INTERNAL_API_KEY: z.string().default("dev-internal-key"),
   ACCESS_TOKEN_EXP: z.string().default("15m"),
   REFRESH_TOKEN_EXP: z.string().default("7d"),
   CLIENT_URL: z.url(),

@@ -8,6 +8,7 @@ export type JWTPayload = {
   role: UserRole;
   tenantId?: string;
   tenantName?: string;
+  isOnboardingComplete?: boolean;
   exp?: number;
 };
 

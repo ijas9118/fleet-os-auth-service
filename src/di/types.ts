@@ -4,6 +4,7 @@ const TYPES = {
   UserController: Symbol.for("UserController"),
   OperationsManagerController: Symbol.for("OperationsManagerController"),
   DriverController: Symbol.for("DriverController"),
+  InternalController: Symbol.for("InternalController"),
   AuthService: Symbol.for("AuthService"),
   UserService: Symbol.for("UserService"),
   OperationsManagerService: Symbol.for("OperationsManagerService"),

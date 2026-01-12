@@ -14,6 +14,8 @@ export interface IUser extends Document<string> {
   invitedAt?: Date;
   invitationAcceptedAt?: Date;
   lastLoginAt?: Date;
+  isOnboardingComplete?: boolean;
+  onboardingCompletedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -65,6 +67,13 @@ const userSchema = new Schema<IUser>(
     isActive: {
       type: Boolean,
       default: false,
+    },
+    isOnboardingComplete: {
+      type: Boolean,
+      default: false,
+    },
+    onboardingCompletedAt: {
+      type: Date,
     },
   },
   {

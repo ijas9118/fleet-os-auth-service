@@ -28,6 +28,7 @@ export class AuthHelper {
       role: data.role,
       tenantId: data.tenantId,
       tenantName: data.tenantName,
+      isOnboardingComplete: data.isOnboardingComplete || false,
     };
   }
 
