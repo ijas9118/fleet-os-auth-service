@@ -13,8 +13,8 @@ import type { StoredOtp } from "@/types";
 import { MESSAGES } from "@/config/messages.constant";
 import TYPES from "@/di/types";
 import { HttpError } from "@/utils/http-error-class";
-import type { IEventPublisherService } from "../event-publisher/event-publisher.service.interface";
 
+import type { IEventPublisherService } from "../event-publisher/event-publisher.service.interface";
 import type { IOtpService } from "./otp.service.interface";
 
 const OTP_TTL_SECONDS = 5 * 60;
