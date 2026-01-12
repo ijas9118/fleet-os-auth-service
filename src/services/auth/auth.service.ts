@@ -21,6 +21,7 @@ import env from "@/config/validate-env";
 import TYPES from "@/di/types";
 import { HttpError } from "@/utils/http-error-class";
 
+import type { IEventPublisherService } from "../event-publisher/event-publisher.service.interface";
 import type { IOtpService } from "../otp/otp.service.interface";
 import type { AuthHelper } from "./auth.helper";
 import type { IAuthService } from "./auth.service.interface";
@@ -34,6 +35,7 @@ export class AuthService implements IAuthService {
     @inject(TYPES.AuthHelper) private _authHelper: AuthHelper,
     @inject(TYPES.TenantRepository) private _tenantRepo: ITenantRepository,
     @inject(TYPES.OtpService) private _otpService: IOtpService,
+    @inject(TYPES.EventPublisherService) private _eventPublisher: IEventPublisherService,
   ) {}
 
   private async _isUserAlreadyExist(email: string) {
@@ -139,7 +141,7 @@ export class AuthService implements IAuthService {
     logger.debug("========================\n");
   }
 
-  async setPasswordFromInvite(data: AcceptInviteDTO): Promise<void> {
+  async setPasswordFromInvite(data: AcceptInviteDTO): Promise<AuthUser> {
     const key = `invite:${data.token}`;
 
     const userId = await this._redisClient.get(key);
@@ -156,6 +158,37 @@ export class AuthService implements IAuthService {
     });
 
     await this._redisClient.del(key);
+
+    // Get updated user to return and publish event
+    const user = await this._userRepo.getUserById(userId);
+    if (!user)
+      throw new HttpError("User not found after update", 500);
+
+    // Publish event if user is a driver
+    if (user.role === UserRole.DRIVER && user.tenantId) {
+      await this._publishDriverActivatedEvent(user);
+    }
+
+    return {
+      id: user._id.toString(),
+      email: user.email,
+      role: user.role,
+      tenantId: user.tenantId,
+    };
+  }
+
+  private async _publishDriverActivatedEvent(user: any): Promise<void> {
+    await this._eventPublisher.publish(
+      "auth-events",
+      "auth.user.driver.activated",
+      {
+        userId: user._id.toString(),
+        email: user.email,
+        name: user.name,
+        tenantId: user.tenantId,
+        activatedAt: new Date().toISOString(),
+      },
+    );
   }
 
   async refreshToken(token: string): Promise<AuthTokens> {

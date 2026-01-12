@@ -69,8 +69,8 @@ export class OtpService implements IOtpService {
 
     // Publish OTP event for notification service
     await this._eventPublisher.publish(
-      "fleet-os.auth.otp.generated",
-      "otp.generated",
+      "auth-events",
+      "auth.otp.generated",
       {
         email: data.email,
         otp,
@@ -94,8 +94,8 @@ export class OtpService implements IOtpService {
 
     // Publish OTP event for notification service
     await this._eventPublisher.publish(
-      "fleet-os.auth.otp.generated",
-      "otp.generated",
+      "auth-events",
+      "auth.otp.generated",
       {
         email: data.contactEmail,
         otp,

@@ -80,8 +80,8 @@ export class AuthController {
 
   acceptInvite = async (req: Request, res: Response) => {
     const data: { token: string; password: string } = req.body;
-    await this._authService.setPasswordFromInvite(data);
-    ResponseHelper.success(res, MESSAGES.AUTH.USER_REGISTER_SUCCESS);
+    const userData = await this._authService.setPasswordFromInvite(data);
+    ResponseHelper.success(res, MESSAGES.AUTH.USER_REGISTER_SUCCESS, userData);
   };
 
   refresh = async (req: Request, res: Response) => {

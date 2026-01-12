@@ -13,6 +13,7 @@ describe("authService", () => {
   let mockTokenRepo: any;
   let mockRedisClient: any;
   let mockAuthHelper: any;
+  let mockEventPublisher: any;
 
   beforeEach(() => {
     mockUserRepo = {
@@ -50,6 +51,9 @@ describe("authService", () => {
       generateTokens: jest.fn(),
       decodeToken: jest.fn(),
     };
+    mockEventPublisher = {
+      publish: jest.fn(),
+    };
 
     authService = new AuthService(
       mockUserRepo,
@@ -58,6 +62,7 @@ describe("authService", () => {
       mockAuthHelper,
       mockTenantRepo,
       mockOtpService,
+      mockEventPublisher,
     );
   });
 
@@ -275,17 +280,56 @@ describe("authService", () => {
   });
 
   describe("setPasswordFromInvite", () => {
-    it("should set password from invite", async () => {
+    it("should set password from invite and return user data", async () => {
+      const mockUser = {
+        _id: "uid",
+        email: "test@example.com",
+        role: "TENANT_ADMIN",
+        tenantId: "tid",
+      };
       mockRedisClient.get.mockResolvedValue("uid");
       mockAuthHelper.hashPassword.mockResolvedValue("hashed");
+      mockUserRepo.getUserById.mockResolvedValue(mockUser);
 
-      await authService.setPasswordFromInvite({ token: "tok", password: "pass" } as any);
+      const result = await authService.setPasswordFromInvite({ token: "tok", password: "pass" } as any);
 
       expect(mockUserRepo.updateUser).toHaveBeenCalledWith("uid", expect.objectContaining({
         password: "hashed",
         isActive: true,
       }));
       expect(mockRedisClient.del).toHaveBeenCalled();
+      expect(result).toEqual({
+        id: "uid",
+        email: "test@example.com",
+        role: "TENANT_ADMIN",
+        tenantId: "tid",
+      });
+    });
+
+    it("should publish event when driver is activated", async () => {
+      const mockUser = {
+        _id: "uid",
+        email: "driver@example.com",
+        role: "DRIVER",
+        tenantId: "tid",
+        name: "Test Driver",
+      };
+      mockRedisClient.get.mockResolvedValue("uid");
+      mockAuthHelper.hashPassword.mockResolvedValue("hashed");
+      mockUserRepo.getUserById.mockResolvedValue(mockUser);
+
+      await authService.setPasswordFromInvite({ token: "tok", password: "pass" } as any);
+
+      expect(mockEventPublisher.publish).toHaveBeenCalledWith(
+        "auth-events",
+        "auth.user.driver.activated",
+        expect.objectContaining({
+          userId: "uid",
+          email: "driver@example.com",
+          name: "Test Driver",
+          tenantId: "tid",
+        }),
+      );
     });
 
     it("should throw if invalid token", async () => {
