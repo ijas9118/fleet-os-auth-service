@@ -19,7 +19,7 @@ const driverController = container.get<DriverController>(
 
 // Protect all routes
 router.use(requireAuth);
-router.use(requireRole(UserRole.TENANT_ADMIN));
+router.use(requireRole(UserRole.TENANT_ADMIN, UserRole.OPERATIONS_MANAGER));
 
 router.get("/", driverController.listDrivers);
 
