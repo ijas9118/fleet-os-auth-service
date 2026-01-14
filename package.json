@@ -19,7 +19,7 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "@ahammedijas/fleet-os-shared": "^1.2.3",
+    "@ahammedijas/fleet-os-shared": "^1.2.5",
     "argon2": "^0.44.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
