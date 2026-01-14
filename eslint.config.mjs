@@ -4,6 +4,11 @@ export default antfu({
   type: "app",
   typescript: true,
   formatters: true,
+  ignores: [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/*.md",
+  ],
   stylistic: {
     indent: 2,
     semi: true,
