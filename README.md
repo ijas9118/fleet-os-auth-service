@@ -1,7 +1,7 @@
 <div align="center">
   <h1>🔐 Fleet OS Auth Service</h1>
   <p>
-    <strong>Secure Authentication, Authorization & Tenant Management Microservice</strong>
+    <strong>Secure Authentication, Authorization & Multi-Tenant User Management</strong>
   </p>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -11,10 +11,11 @@
 ![Redis](https://img.shields.io/badge/redis-%23DD0031.svg?style=flat&logo=redis&logoColor=white)
 
   <p>
+    <a href="#-overview">Overview</a> •
     <a href="#-architecture">Architecture</a> •
+    <a href="#-key-features">Features</a> •
     <a href="#-technology-stack">Tech Stack</a> •
-    <a href="#-project-structure">Structure</a> •
-    <a href="#-configuration">Configuration</a> •
+    <a href="#-getting-started">Getting Started</a> •
     <a href="#-api-endpoints">API</a>
   </p>
 </div>
@@ -23,181 +24,472 @@
 
 ## 📖 Overview
 
-The **Fleet OS Auth Service** is the backbone of security within the Fleet OS ecosystem. It robustly handles identity management, ensuring that users and tenants are authenticated and authorized securely.
+The **Fleet OS Auth Service** is the central authentication and authorization microservice for the Fleet OS platform - a comprehensive fleet and logistics management system. It provides secure, scalable user identity management with multi-tenancy support, enabling platform admins, tenant organizations, and various user roles to interact safely within their isolated environments.
 
-### ✨ Key Features
+### 🎯 Purpose
 
-- **Multi-Tenancy**: Built-in support for tenant isolation and management.
-- **Secure Authentication**: JWT-based stateless authentication with RS256 signing.
-- **RBAC**: Granular Role-Based Access Control integration.
-- **OTP Verification**: Secure 2FA flows for registration.
-- **Token Management**: Refresh token rotation and revocation capabilities.
+This service handles all authentication, authorization, and user management concerns for the Fleet OS ecosystem, including:
+
+- **Platform Administration**: Super admins who manage the entire platform
+- **Tenant Management**: Organization-level access control
+- **Role-Based Access**: Multiple roles (Tenant Admin, Operations Manager, Driver)
+- **User Lifecycle**: Registration, verification, invitation, onboarding
+- **Session Management**: Secure JWT-based authentication with refresh tokens
+
+---
+
+## ✨ Key Features
+
+### 🏢 Multi-Tenancy
+- **Tenant Isolation**: Complete data separation between organizations
+- **Tenant Registration**: Self-service org registration with OTP verification
+- **Tenant Administration**: Platform admins can verify/reject tenant applications
+- **Tenant Status Management**: PENDING, VERIFIED, REJECTED states
+
+### 🔐 Authentication & Authorization
+- **JWT-Based Auth**: Stateless authentication using RS256 asymmetric encryption
+- **Refresh Tokens**: Secure token rotation stored in MongoDB
+- **Role-Based Access Control (RBAC)**: Fine-grained permissions across 4 roles:
+  - `PLATFORM_ADMIN` - Platform-wide administration
+  - `TENANT_ADMIN` - Organization management
+  - `OPERATIONS_MANAGER` - Fleet operations
+  - `DRIVER` - Delivery driver access
+
+### 👥 User Management
+- **User Invitation System**: Admins can invite users via email
+- **OTP Verification**: 2FA flow for new registrations
+- **Driver Onboarding**: Special onboarding flow for drivers
+- **User Status Control**: Block/unblock users and manage access
+
+### 🔒 Security Features
+- **Argon2 Password Hashing**: Industry-leading secure password storage
+- **HTTP-Only Cookies**: Refresh tokens stored securely
+- **Rate Limiting**: Protection against brute force attacks (Redis-based)
+- **CORS Protection**: Configurable cross-origin resource sharing
+- **Helmet Security Headers**: Industry-standard HTTP security headers
+
+### 📊 Session & Token Management
+- **Multi-Device Support**: Users can have multiple active sessions
+- **Token Revocation**: Logout from specific devices or all devices
+- **Refresh Token Rotation**: Security through token cycling
+- **Redis Caching**: Fast OTP validation and rate limiting
 
 ---
 
 ## 🏛 Architecture
 
-This service follows a **Clean, N-Layered Architecture** to ensure modularity and scalability.
+This service follows **Clean Architecture** principles with clear separation of concerns.
 
 ```mermaid
-graph TD
-    %% Nodes
-    Client[📱 Client App / Gateway] -->|HTTP| Router[Express Router]
-    Router -->|Validate| Controller[Auth Controller]
-
-    subgraph ServiceLayer ["📦 Service Layer"]
-    direction TB
-    Controller -->|DI| AuthService[Auth Service]
-    Controller -->|DI| OtpService[OTP Service]
-    AuthService -->|Helper| AuthHelper[Auth Helper]
+graph TB
+    subgraph "🌐 Presentation Layer"
+        Routes[API Routes]
+        Controllers[Controllers]
+        Middleware[Middlewares]
     end
 
-    subgraph DataLayer ["💾 Data Access Layer"]
-    direction TB
-    AuthService -->|DI| UserRepo[User Repository]
-    AuthService -->|DI| TenantRepo[Tenant Repository]
-    AuthService -->|DI| TokenRepo[Token Repository]
+    subgraph "💼 Business Logic Layer"
+        AuthService[Auth Service]
+        OtpService[OTP Service]
+        TenantService[Tenant Service]
+        UserService[User Service]
+        TokenService[Token Service]
     end
 
-    subgraph Infra ["🏗 Infrastructure"]
-    direction TB
-    UserRepo --> Mongo[(MongoDB)]
-    TenantRepo --> Mongo
-    TokenRepo --> Mongo
-    AuthService -.-> Redis[(Redis Cache)]
+    subgraph "💾 Data Access Layer"
+        UserRepo[User Repository]
+        TenantRepo[Tenant Repository]
+        TokenRepo[Token Repository]
+    end
+
+    subgraph "🗄️ Infrastructure"
+        MongoDB[(MongoDB)]
+        Redis[(Redis)]
+        Kafka[Kafka Events]
+    end
+
+    Routes --> Controllers
+    Controllers --> Middleware
+    Middleware --> AuthService
+    Middleware --> OtpService
+    Controllers --> AuthService
+    Controllers --> TenantService
+    Controllers --> UserService
+    
+    AuthService --> UserRepo
+    AuthService --> TenantRepo
+    AuthService --> TokenRepo
+    TenantService --> TenantRepo
+    UserService --> UserRepo
+    TokenService --> TokenRepo
+    
+    UserRepo --> MongoDB
+    TenantRepo --> MongoDB
+    TokenRepo --> MongoDB
+    
     OtpService -.-> Redis
-    end
+    AuthService -.-> Redis
+    AuthService -.-> Kafka
 
-    %% Styling
-    classDef default fill:none,stroke:#30363d,stroke-width:1px,color: #c9d1d9;
-    classDef client fill: #388bfd26,stroke: #388bfd,stroke-width:2px,color: #c9d1d9,rx:5,ry:5;
-    classDef router fill: #388bfd26,stroke: #388bfd,stroke-width:2px,color: #c9d1d9,rx:5,ry:5;
-    classDef service fill: #2386362e,stroke: #2ea043,stroke-width:2px,color: #c9d1d9,rx:5,ry:5;
-    classDef data fill: #d2992226,stroke: #d29922,stroke-width:2px,color: #c9d1d9,rx:5,ry:5;
-    classDef db fill: #f8514926,stroke: #f85149,stroke-width:2px,color: #c9d1d9,rx:5,ry:5;
+    classDef presentation fill:#3b82f6,stroke:#1e40af,color:#fff
+    classDef business fill:#10b981,stroke:#059669,color:#fff
+    classDef data fill:#f59e0b,stroke:#d97706,color:#fff
+    classDef infra fill:#ef4444,stroke:#dc2626,color:#fff
 
-    class Client client;
-    class Router,Controller router;
-    class AuthService,OtpService,AuthHelper service;
-    class UserRepo,TenantRepo,TokenRepo data;
-    class Mongo,Redis db;
-
-    style ServiceLayer fill: #1b1e23ff,stroke: #035428ff,stroke-width:2px,rx:10,ry:10
-    style DataLayer fill: #1b1e23ff,stroke: #d29922,stroke-width:2px,rx:10,ry:10
-    style Infra fill: #1b1e23ff,stroke: #f85149,stroke-width:2px,rx:10,ry:10
-
+    class Routes,Controllers,Middleware presentation
+    class AuthService,OtpService,TenantService,UserService,TokenService business
+    class UserRepo,TenantRepo,TokenRepo data
+    class MongoDB,Redis,Kafka infra
 ```
 
 ### 🧠 Design Patterns
 
-- **Repository Pattern**: Decouples business logic from data access.
-- **Dependency Injection**: Powered by [InversifyJS](https://inversify.io/) for loose coupling.
-- **DTOs**: Strict data validation using `Zod` schemas.
+- **Repository Pattern**: Abstracts data access behind interfaces
+- **Dependency Injection**: Uses InversifyJS for IoC container management
+- **DTO Pattern**: Zod schemas for request/response validation
+- **Service Layer Pattern**: Encapsulates business logic
+- **Middleware Pattern**: Composable request processing pipeline
 
 ---
 
 ## 🛠 Technology Stack
 
-| Category      | Technology                                                                                                      | Description                               |
-| :------------ | :-------------------------------------------------------------------------------------------------------------- | :---------------------------------------- |
-| **Runtime**   | ![NodeJS](https://img.shields.io/badge/Node.js-339933?style=flat-square&logo=nodedotjs&logoColor=white)         | Server-side JavaScript runtime            |
-| **Language**  | ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat-square&logo=typescript&logoColor=white) | Statically typed JavaScript               |
-| **Framework** | ![Express](https://img.shields.io/badge/Express.js-000000?style=flat-square&logo=express&logoColor=white)       | Fast, unopinionated web framework         |
-| **Database**  | ![MongoDB](https://img.shields.io/badge/MongoDB-4EA94B?style=flat-square&logo=mongodb&logoColor=white)          | NoSQL database                            |
-| **Cache**     | ![Redis](https://img.shields.io/badge/Redis-DC382D?style=flat-square&logo=redis&logoColor=white)                | In-memory data store                      |
-| **Security**  | **Argon2** & **JWT**                                                                                            | Best-in-class hashing and token standards |
+| Category | Technology | Purpose |
+|:---------|:-----------|:--------|
+| **Runtime** | ![NodeJS](https://img.shields.io/badge/Node.js-339933?style=flat-square&logo=nodedotjs&logoColor=white) | JavaScript runtime |
+| **Language** | ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat-square&logo=typescript&logoColor=white) | Type-safe development |
+| **Framework** | ![Express](https://img.shields.io/badge/Express.js-000000?style=flat-square&logo=express&logoColor=white) | Web framework |
+| **Database** | ![MongoDB](https://img.shields.io/badge/MongoDB-4EA94B?style=flat-square&logo=mongodb&logoColor=white) | Document database |
+| **Cache** | ![Redis](https://img.shields.io/badge/Redis-DC382D?style=flat-square&logo=redis&logoColor=white) | Session & rate limiting |
+| **Security** | **Argon2** & **JWT (RS256)** | Password hashing & tokens |
+| **DI Container** | **InversifyJS** | Dependency injection |
+| **Validation** | **Zod** | Runtime type checking |
+| **Logging** | **Winston** | Structured logging |
+| **Testing** | **Jest** | Unit & integration tests |
+| **Messaging** | **KafkaJS** | Event streaming |
 
 ---
 
 ## 📂 Project Structure
 
-```bash
-src/
-├── config/           # ⚙️ Configuration & ENV validation
-├── controllers/      # 🎮 Route handlers (Entry point)
-├── di/               # 💉 Dependency Injection container
-├── dto/              # 📝 Data Transfer Objects (Validation)
-├── middlewares/      # 🛡️ Auth, Role & Logic Middlewares
-├── models/           # 🗄️ Mongoose Schemas & Models
-├── repositories/     # 💾 Database interactions
-├── routes/           # 🛣️ API Route definitions
-├── services/         # 🧠 Core Business Logic
-├── types/            # 🏷️ TypeScript definitions
-├── utils/            # 🛠️ Helper utilities
-├── app.ts            # 🚀 App configuration
-└── server.ts         # 🏁 Server entry point
+```
+fleet-os-auth-service/
+├── src/
+│   ├── config/              # ⚙️ Environment & configuration
+│   │   ├── database.ts      # MongoDB connection
+│   │   ├── redis.ts         # Redis client setup
+│   │   ├── kafka.ts         # Kafka producer/consumer
+│   │   └── keys.ts          # RSA key management
+│   │
+│   ├── controllers/         # 🎮 HTTP request handlers
+│   │   ├── auth.controller.ts
+│   │   ├── tenant.controller.ts
+│   │   ├── user.controller.ts
+│   │   └── driver.controller.ts
+│   │
+│   ├── di/                  # 💉 Dependency injection setup
+│   │   └── container.ts     # IoC container configuration
+│   │
+│   ├── dto/                 # 📝 Data transfer objects & validation
+│   │   ├── auth.dto.ts
+│   │   ├── tenant.dto.ts
+│   │   └── user.dto.ts
+│   │
+│   ├── middlewares/         # 🛡️ Request processing middleware
+│   │   ├── auth.middleware.ts       # JWT validation
+│   │   ├── role.middleware.ts       # RBAC enforcement
+│   │   ├── validate.middleware.ts   # Zod schema validation
+│   │   └── error.middleware.ts      # Global error handling
+│   │
+│   ├── models/              # 🗄️ Mongoose schemas
+│   │   ├── User.ts
+│   │   ├── Tenant.ts
+│   │   └── RefreshToken.ts
+│   │
+│   ├── repositories/        # 💾 Data access layer
+│   │   ├── user.repository.ts
+│   │   ├── tenant.repository.ts
+│   │   └── token.repository.ts
+│   │
+│   ├── routes/              # 🛣️ API route definitions  
+│   │   ├── auth.routes.ts
+│   │   ├── tenant.routes.ts
+│   │   ├── user.routes.ts
+│   │   └── driver.routes.ts
+│   │
+│   ├── services/            # 🧠 Business logic
+│   │   ├── authService/
+│   │   ├── otpService/
+│   │   ├── tenantService/
+│   │   ├── userService/
+│   │   └── tokenService/
+│   │
+│   ├── types/               # 🏷️ TypeScript type definitions
+│   ├── utils/               # 🛠️ Helper utilities
+│   ├── app.ts               # Express app setup
+│   └── index.ts             # Server entry point
+│
+├── tests/                   # 🧪 Test suites
+│   ├── repositories/        # Repository unit tests
+│   └── services/            # Service integration tests
+│
+├── .env.example             # Environment variables template
+├── Dockerfile               # Production container
+├── docker-compose.yml       # Local development stack
+└── package.json
 ```
 
 ---
 
-## � Configuration
+## 🚀 Getting Started
 
-### 🔑 Generating RS256 Keys
+### Prerequisites
 
-This service uses **Asymmetric Cryptography (RS256)** for JWTs. You must generate a Private/Public key pair securely.
+- **Node.js** >= 20.x
+- **pnpm** >= 9.x
+- **MongoDB** >= 6.x
+- **Redis** >= 7.x
 
-**Run the following commands in your terminal:**
+### Installation
 
+1. **Clone the repository**
 ```bash
-# 1. Generate Private Key
-openssl genpkey -algorithm RSA -out private_key.pem -pkeyopt rsa_keygen_bits:2048
-
-# 2. Generate Public Key
-openssl rsa -pubout -in private_key.pem -out public_key.pem
+git clone https://github.com/ijas9118/fleet-os-auth-service.git
+cd fleet-os-auth-service
 ```
 
-> **Note**: In production, manage these keys securely (e.g., AWS Secrets Manager, Vault).
+2. **Install dependencies**
+```bash
+pnpm install
+```
 
-### 🌍 Environment Variables
+3. **Generate RSA keys for JWT signing**
+```bash
+# Generate private key
+openssl genpkey -algorithm RSA -out private.pem -pkeyopt rsa_keygen_bits:2048
 
-Copy `.env.example` to `.env` and fill in the values:
+# Generate public key
+openssl rsa -pubout -in private.pem -out public.pem
+```
 
-| Variable       | Description                       | Example / Default                         |
-| :------------- | :-------------------------------- | :---------------------------------------- |
-| `NODE_ENV`     | Application environment           | `development`                             |
-| `PORT`         | Service port                      | `3001`                                    |
-| `DATABASE_URL` | MongoDB connection string         | `mongodb://localhost:27017/fleet-os-auth` |
-| `REDIS_URL`    | Redis connection URL              | `redis://localhost:6379`                  |
-| `CLIENT_URL`   | Frontend URL for generating links | `http://localhost:3000`                   |
-| `PRIVATE_KEY`  | RSA Private Key (PEM format)      | (Paste content of `private_key.pem`)      |
-| `PUBLIC_KEY`   | RSA Public Key (PEM format)       | (Paste content of `public_key.pem`)       |
+4. **Configure environment**
+```bash
+cp .env.example .env
+# Edit .env with your configuration
+```
+
+5. **Run development server**
+```bash
+pnpm dev
+```
+
+The service will start on `http://localhost:3001` (or your configured port).
+
+### Running Tests
+
+```bash
+# Run all tests
+pnpm test
+
+# Watch mode
+pnpm test:watch
+
+# Generate coverage report
+pnpm test:coverage
+```
+
+### Building for Production
+
+```bash
+# Type check
+pnpm typecheck
+
+# Build
+pnpm build
+
+# Start production server
+pnpm start
+```
 
 ---
 
-## �🔌 API Endpoints
+## 🔌 API Endpoints
 
-All endpoints are prefixed with `/api/v1/auth`.
+Base URL: `/api/v1`
 
-### 🔓 Public
+### 🔓 Public Endpoints
 
-| Method | Endpoint           | Description                        |
-| :----- | :----------------- | :--------------------------------- |
-| `POST` | `/register-tenant` | Register a new tenant organization |
-| `POST` | `/register-admin`  | Register a tenant administrator    |
-| `POST` | `/verify-otp`      | Verify OTP for registration        |
-| `POST` | `/resend-otp`      | Resend OTP code                    |
-| `POST` | `/login`           | User login (Returns JWT)           |
-| `POST` | `/refresh`         | Refresh access token               |
-| `POST` | `/accept-invite`   | Set password for invited user      |
+#### Authentication
+| Method | Endpoint | Description |
+|:-------|:---------|:------------|
+| `POST` | `/auth/login` | User login - returns JWT access & refresh tokens |
+| `POST` | `/auth/refresh` | Refresh access token using refresh token |
+| `POST` | `/auth/resend-otp` | Resend OTP for verification |
 
-### 🔐 Protected
+#### Registration
+| Method | Endpoint | Description |
+|:-------|:---------|:------------|
+| `POST` | `/tenants/register` | Register a new tenant organization |
+| `POST` | `/auth/register-admin` | Register tenant admin (post-verification) |
+| `POST` | `/auth/verify-otp` | Verify OTP for registration |
+| `POST` | `/auth/accept-invite` | Accept user invitation & set password |
 
-| Method | Endpoint      | Role | Description            |
-| :----- | :------------ | :--- | :--------------------- |
-| `POST` | `/logout`     | All  | Logout current session |
-| `POST` | `/logout-all` | All  | Revoke all sessions    |
+### 🔐 Protected Endpoints (Requires Authentication)
 
-### 👮 Admin Operations
+#### Session Management
+| Method | Endpoint | Description | Roles |
+|:-------|:---------|:------------|:------|
+| `POST` | `/auth/logout` | Logout current session | All |
+| `POST` | `/auth/logout-all` | Revoke all user sessions | All |
 
-| Method | Endpoint           | Role             | Description                          |
-| :----- | :----------------- | :--------------- | :----------------------------------- |
-| `GET`  | `/tenants`         | `PLATFORM_ADMIN` | List all tenants                     |
-| `GET`  | `/tenants/pending` | `PLATFORM_ADMIN` | List pending tenants                 |
-| `POST` | `/verify-tenant`   | `PLATFORM_ADMIN` | Verify tenant & generate admin link  |
-| `POST` | `/invite-user`     | `ADMINs`         | Invite internal users (Driver, etc.) |
+#### User Invitations
+| Method | Endpoint | Description | Roles |
+|:-------|:---------|:------------|:------|
+| `POST` | `/auth/invite-user` | Invite new user to organization | `TENANT_ADMIN`, `OPERATIONS_MANAGER` |
+
+### 👮 Platform Admin Endpoints
+
+#### Tenant Management
+| Method | Endpoint | Description | Roles |
+|:-------|:---------|:------------|:------|
+| `GET` | `/tenants` | List all verified tenants | `PLATFORM_ADMIN` |
+| `GET` | `/tenants/pending` | List pending tenant applications | `PLATFORM_ADMIN` |
+| `GET` | `/tenants/rejected` | List rejected tenants | `PLATFORM_ADMIN` |
+| `POST` | `/tenants/verify` | Verify pending tenant | `PLATFORM_ADMIN` |
+| `POST` | `/tenants/reject` | Reject tenant application | `PLATFORM_ADMIN` |
+
+#### User Management
+| Method | Endpoint | Description | Roles |
+|:-------|:---------|:------------|:------|
+| `GET` | `/users` | List all users | `PLATFORM_ADMIN`, `TENANT_ADMIN` |
+| `POST` | `/users/block` | Block user access | `PLATFORM_ADMIN`, `TENANT_ADMIN` |
+| `POST` | `/users/unblock` | Unblock user | `PLATFORM_ADMIN`, `TENANT_ADMIN` |
+
+#### Operations Manager Management
+| Method | Endpoint | Description | Roles |
+|:-------|:---------|:------------|:------|
+| `GET` | `/operations-managers` | List operations managers | `PLATFORM_ADMIN`, `TENANT_ADMIN` |
+| `POST` | `/operations-managers/block` | Block operations manager | `PLATFORM_ADMIN`, `TENANT_ADMIN` |
+| `POST` | `/operations-managers/unblock` | Unblock operations manager | `PLATFORM_ADMIN`, `TENANT_ADMIN` |
+
+#### Driver Management
+| Method | Endpoint | Description | Roles |
+|:-------|:---------|:------------|:------|
+| `GET` | `/drivers` | List all drivers | `PLATFORM_ADMIN`, `TENANT_ADMIN`, `OPERATIONS_MANAGER` |
+| `POST` | `/drivers/block` | Block driver | `PLATFORM_ADMIN`, `TENANT_ADMIN`, `OPERATIONS_MANAGER` |
+| `POST` | `/drivers/unblock` | Unblock driver | `PLATFORM_ADMIN`, `TENANT_ADMIN`, `OPERATIONS_MANAGER` |
+
+---
+
+## 🔐 Authentication Flow
+
+### Registration & Onboarding
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant AuthService
+    participant OTPService
+    participant EmailService
+    participant MongoDB
+
+    User->>AuthService: Register Tenant
+    AuthService->>MongoDB: Create Pending Tenant
+    AuthService->>OTPService: Generate OTP
+    OTPService->>EmailService: Send OTP Email
+    User->>AuthService: Verify OTP
+    AuthService->>OTPService: Validate OTP
+    OTPService-->>AuthService: Valid
+    AuthService->>MongoDB: Update Tenant Status
+    Note over User,MongoDB: Tenant Verified (PLATFORM_ADMIN approval)
+    AuthService->>EmailService: Send Admin Registration Link
+    User->>AuthService: Register Admin Account
+    AuthService->>MongoDB: Create Admin User
+    AuthService-->>User: JWT Tokens
+```
+
+### Login Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant AuthService
+    participant TokenService
+    participant MongoDB
+    participant Redis
+
+    User->>AuthService: Login (email, password)
+    AuthService->>MongoDB: Find User
+    AuthService->>AuthService: Verify Password (Argon2)
+    AuthService->>TokenService: Generate Tokens
+    TokenService->>MongoDB: Store Refresh Token
+    TokenService-->>AuthService: Access + Refresh Tokens
+    AuthService-->>User: Set HTTP-Only Cookie + Access Token
+    Note over User: User makes authenticated requests
+    User->>AuthService: Request with Access Token
+    AuthService->>AuthService: Verify JWT
+    AuthService-->>User: Protected Resource
+```
+
+---
+
+## 🧪 Testing
+
+The service includes comprehensive test coverage:
+
+- **Unit Tests**: Repository layer, services, utilities
+- **Integration Tests**: API endpoints, authentication flows
+- **Test Coverage**: Aiming for >80% code coverage
+
+Run tests with:
+```bash
+pnpm test              # Run all tests
+pnpm test:watch        # Watch mode
+pnpm test:coverage     # Generate coverage report
+```
+
+---
+
+## 📊 Environment Variables
+
+| Variable | Description | Required | Default |
+|:---------|:------------|:---------|:--------|
+| `NODE_ENV` | Environment (development/production) | No | `development` |
+| `PORT` | Server port | No | `3001` |
+| `DATABASE_URL` | MongoDB connection string | Yes | - |
+| `REDIS_URL` | Redis connection URL | Yes | - |
+| `CLIENT_URL` | Frontend application URL | Yes | - |
+| `PRIVATE_KEY_PATH` | Path to RSA private key | Yes | `./private.pem` |
+| `PUBLIC_KEY_PATH` | Path to RSA public key | Yes | `./public.pem` |
+| `JWT_ACCESS_EXPIRY` | Access token expiry | No | `15m` |
+| `JWT_REFRESH_EXPIRY` | Refresh token expiry | No | `7d` |
+| `OTP_EXPIRY_MINUTES` | OTP validity period | No | `10` |
+| `KAFKA_BROKERS` | Kafka broker URLs | No | - |
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please follow these steps:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ---
 
 ## 📄 License
 
-This project is licensed under the **MIT License**.
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+---
+
+<div align="center">
+  <p>Built with ❤️ for the Fleet OS Platform</p>
+  <p>
+    <a href="https://github.com/ijas9118/fleet-os-auth-service">GitHub</a> •
+    <a href="https://github.com/ijas9118/fleet-os-auth-service/issues">Issues</a>
+  </p>
+</div>
