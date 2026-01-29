@@ -2,7 +2,6 @@ import type { Application, NextFunction, Request, Response } from "express";
 
 import { STATUS_CODES } from "@ahammedijas/fleet-os-shared";
 import cookieParser from "cookie-parser";
-import cors from "cors";
 import express from "express";
 import helmet from "helmet";
 
