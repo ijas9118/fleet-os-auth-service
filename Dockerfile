@@ -18,7 +18,7 @@ RUN corepack enable
 WORKDIR /app
 
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile --prod && \
+RUN pnpm install --frozen-lockfile --prod --ignore-scripts && \
     pnpm store prune && \
     rm -rf /root/.npm /root/.cache
 
